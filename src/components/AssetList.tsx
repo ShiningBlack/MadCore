@@ -1,13 +1,16 @@
 import React from 'react';
 import { AssetAccount } from '../types/asset';
 import { AssetCard } from './AssetCard';
+import { useAssetStore } from '../store/useAssetStore';
 
 interface AssetListProps {
   title: string;
   accounts: AssetAccount[];
+  onAccountClick: (account: AssetAccount) => void;
 }
 
-export const AssetList: React.FC<AssetListProps> = ({ title, accounts }) => {
+export const AssetList: React.FC<AssetListProps> = ({ title, accounts, onAccountClick }) => {
+  const showBalances = useAssetStore(state => state.showBalances);
   if (accounts.length === 0) return null;
 
   const total = accounts.reduce((sum, acc) => sum + acc.balance, 0);
@@ -15,16 +18,18 @@ export const AssetList: React.FC<AssetListProps> = ({ title, accounts }) => {
   return (
     <div className="mb-8">
       <div className="flex justify-between items-end mb-4 px-1">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+        <h3 className="text-lg font-black text-gray-800 dark:text-gray-200 uppercase tracking-tight">
           {title}
         </h3>
-        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          ¥{total.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+        <span className="text-sm font-bold text-gray-400 dark:text-zinc-600">
+          {showBalances 
+            ? `¥${total.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}` 
+            : '******'}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {accounts.map(account => (
-          <AssetCard key={account.id} account={account} />
+          <AssetCard key={account.id} account={account} onClick={onAccountClick} />
         ))}
       </div>
     </div>

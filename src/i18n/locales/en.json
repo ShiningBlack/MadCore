@@ -1,0 +1,61 @@
+{
+  "common": {
+    "save": "Save",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "search": "Search",
+    "updated": "Updated"
+  },
+  "login": {
+    "welcome": "Welcome Back",
+    "create_account": "Create Account",
+    "username": "Username",
+    "password": "Password",
+    "sign_in": "Sign In",
+    "register": "Register & Start",
+    "new_here": "New here? Create account",
+    "have_account": "Already have an account? Sign In",
+    "securing": "Localized Security Architecture"
+  },
+  "dashboard": {
+    "hi": "Hi, {{name}}",
+    "welcome_msg": "MadCore Asset Management",
+    "total_net_worth": "Total Net Worth",
+    "liquid_assets": "Liquid Assets",
+    "investments": "Investments",
+    "new_asset": "New Asset",
+    "demo_data": "Demo Data",
+    "refresh": "Refresh Valuations",
+    "logout": "Logout",
+    "securing_data": "Accessing Secure Vault..."
+  },
+  "asset": {
+    "type": {
+      "cash": "Cash",
+      "bank": "Bank Card",
+      "alipay": "Alipay",
+      "wechat": "WeChat",
+      "fund": "Fund"
+    },
+    "fields": {
+      "name": "Account Name",
+      "bank_name": "Bank Name",
+      "fund_name": "Fund Name",
+      "balance": "Initial Balance",
+      "currency": "Currency",
+      "account_number": "Card Last 4 Digits",
+      "fund_code": "Fund Code (6 Digits)"
+    },
+    "detail": {
+      "current_balance": "Current Balance",
+      "daily_estimate": "Daily Estimate",
+      "est_profit": "Est. Profit",
+      "trend_title": "30-Day Net Worth Trend",
+      "no_trend": "No Trend Data Available",
+      "remove_record": "Terminate Asset Record",
+      "confirm_delete": "Are you sure you want to delete this asset?"
+    }
+  }
+}

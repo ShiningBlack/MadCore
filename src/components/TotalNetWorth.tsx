@@ -1,39 +1,42 @@
 import React from 'react';
 import { Eye, EyeOff, TrendingUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface TotalNetWorthProps {
   total: number;
+  show: boolean;
+  onToggle: () => void;
 }
 
-export const TotalNetWorth: React.FC<TotalNetWorthProps> = ({ total }) => {
-  const [show, setShow] = React.useState(true);
+export const TotalNetWorth: React.FC<TotalNetWorthProps> = ({ total, show, onToggle }) => {
+  const { t } = useTranslation();
 
   return (
-    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-      {/* Decorative background element */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+    <div className="bg-gradient-to-r from-indigo-600 to-blue-700 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-20 -mt-20 blur-3xl group-hover:opacity-10 transition-opacity"></div>
       
-      <div className="relative z-10 flex justify-between items-center mb-4">
-        <h2 className="text-blue-100 font-medium text-sm tracking-wide uppercase">Total Net Worth (CNY)</h2>
+      <div className="relative z-10 flex justify-between items-center mb-6">
+        <h2 className="text-indigo-100 font-bold text-xs tracking-[0.2em] uppercase opacity-80">{t('dashboard.total_net_worth')} (CNY)</h2>
         <button 
-          onClick={() => setShow(!show)}
-          className="text-blue-200 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
-          aria-label={show ? "Hide Balance" : "Show Balance"}
+          onClick={onToggle}
+          className="text-indigo-200 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/10"
         >
-          {show ? <Eye size={18} /> : <EyeOff size={18} />}
+          {show ? <Eye size={20} /> : <EyeOff size={20} />}
         </button>
       </div>
       
-      <div className="relative z-10 flex items-end gap-3">
-        <span className="text-3xl font-semibold">¥</span>
-        <span className="text-5xl font-bold tracking-tight">
-          {show ? total.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '******'}
+      <div className="relative z-10 flex items-baseline gap-3">
+        <span className="text-3xl font-black opacity-50">¥</span>
+        <span className="text-6xl font-black tracking-tighter">
+          {show ? total.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '******'}
         </span>
       </div>
 
-      <div className="relative z-10 mt-6 inline-flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full text-xs font-medium">
-        <TrendingUp size={14} />
-        <span>Updated just now</span>
+      <div className="relative z-10 mt-8 flex items-center gap-2 text-indigo-100/60">
+        <div className="p-1.5 bg-white/10 rounded-lg">
+          <TrendingUp size={14} className="text-indigo-200" />
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-widest">{t('common.updated')} {new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ const getBgForType = (type: AssetAccount['type'], gszzl?: number) => {
 
 export const AssetCard: React.FC<AssetCardProps> = ({ account, onClick }) => {
   const showBalances = useAssetStore(state => state.showBalances);
-  const gszzl = account.valuation ? parseFloat(account.valuation.gszzl) : undefined;
+  const gszzl = account.realtime ? parseFloat(account.realtime.gszzl) : undefined;
 
   return (
     <div

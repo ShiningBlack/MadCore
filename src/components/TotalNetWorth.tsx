@@ -1,42 +1,87 @@
 import React from 'react';
-import { Eye, EyeOff, TrendingUp } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Eye, EyeOff, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from 'lucide-react';
 
-interface TotalNetWorthProps {
+interface Props {
   total: number;
   show: boolean;
   onToggle: () => void;
+  liquidTotal: number;
+  investmentTotal: number;
+  todayPnL: number;
 }
 
-export const TotalNetWorth: React.FC<TotalNetWorthProps> = ({ total, show, onToggle }) => {
-  const { t } = useTranslation();
+const fmt = (v: number, show: boolean) =>
+  show
+    ? v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '******';
+
+export const TotalNetWorth: React.FC<Props> = ({
+  total, show, onToggle, liquidTotal, investmentTotal, todayPnL,
+}) => {
+  const isPnLPos = todayPnL >= 0;
+  const hasFund = investmentTotal > 0;
 
   return (
-    <div className="bg-gradient-to-r from-indigo-600 to-blue-700 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-20 -mt-20 blur-3xl group-hover:opacity-10 transition-opacity"></div>
-      
-      <div className="relative z-10 flex justify-between items-center mb-6">
-        <h2 className="text-indigo-100 font-bold text-xs tracking-[0.2em] uppercase opacity-80">{t('dashboard.total_net_worth')} (CNY)</h2>
-        <button 
-          onClick={onToggle}
-          className="text-indigo-200 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/10"
-        >
-          {show ? <Eye size={20} /> : <EyeOff size={20} />}
-        </button>
-      </div>
-      
-      <div className="relative z-10 flex items-baseline gap-3">
-        <span className="text-3xl font-black opacity-50">¥</span>
-        <span className="text-6xl font-black tracking-tighter">
-          {show ? total.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '******'}
-        </span>
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/20">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-16 -right-16 w-72 h-72 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 mt-8 flex items-center gap-2 text-indigo-100/60">
-        <div className="p-1.5 bg-white/10 rounded-lg">
-          <TrendingUp size={14} className="text-indigo-200" />
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <p className="text-white/60 font-bold text-xs tracking-[0.25em] uppercase">总净资产 (CNY)</p>
+          <button
+            onClick={onToggle}
+            className="p-2 rounded-xl hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+          >
+            {show ? <Eye size={18} /> : <EyeOff size={18} />}
+          </button>
         </div>
-        <span className="text-[10px] font-black uppercase tracking-widest">{t('common.updated')} {new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+
+        {/* Total */}
+        <div className="flex items-baseline gap-2 mb-2">
+          <span className="text-3xl font-black opacity-50">¥</span>
+          <span className="text-5xl font-black tracking-tighter">
+            {fmt(total, show)}
+          </span>
+        </div>
+
+        {/* Today PnL (funds) */}
+        {hasFund && todayPnL !== 0 && (
+          <div className={`flex items-center gap-1.5 mb-6 text-sm font-bold ${isPnLPos ? 'text-rose-200' : 'text-emerald-200'}`}>
+            {isPnLPos ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+            <span>今日基金估算</span>
+            <span className="font-black">
+              {isPnLPos ? '+' : ''}{show ? todayPnL.toFixed(2) : '***'}
+            </span>
+          </div>
+        )}
+
+        {/* Breakdown */}
+        <div className="flex gap-4 mt-auto pt-6 border-t border-white/10">
+          <div className="flex items-center gap-2.5 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+              <Wallet size={15} className="text-white/70" />
+            </div>
+            <div>
+              <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider">流动资产</p>
+              <p className="text-sm font-black">¥{fmt(liquidTotal, show)}</p>
+            </div>
+          </div>
+          <div className="w-px bg-white/10" />
+          <div className="flex items-center gap-2.5 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={15} className="text-white/70" />
+            </div>
+            <div>
+              <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider">投资资产</p>
+              <p className="text-sm font-black">¥{fmt(investmentTotal, show)}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,11 @@
+{
+  "identifier": "lib-commands",
+  "description": "Allows commands defined in lib.rs",
+  "commands": {
+    "allow": [
+      "hash_password",
+      "fetch_fund_realtime",
+      "fetch_fund_detail_full"
+    ]
+  }
+}

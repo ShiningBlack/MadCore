@@ -11,6 +11,8 @@ export type TransactionType =
   | 'fund_sell'
   | 'fund_dividend';
 
+export type TransactionStatus = 'pending' | 'confirmed';
+
 export interface AssetAccount {
   id: string;
   userId: number;
@@ -21,8 +23,9 @@ export interface AssetAccount {
   accountNumber?: string;
   // Fund-specific
   fundCode?: string;
-  shares?: number;       // 持有份额
-  costPrice?: number;    // 成本净值
+  shares?: number;           // 持有份额
+  costPrice?: number;        // 成本净值
+  settlementDays?: number;   // 1 = T+1, 2 = T+2
   // Runtime (not stored)
   realtime?: FundRealtime;
 }
@@ -33,8 +36,28 @@ export interface Transaction {
   userId: number;
   type: TransactionType;
   amount: number;
+  nav?: number;              // 确认净值
+  sharesChange?: number;     // 份额变动
+  status: TransactionStatus;
+  confirmDate?: string;      // 预计份额确认日 (YYYY-MM-DD)
   note?: string;
   timestamp: string;
+}
+
+// ── Watchlist ─────────────────────────────────────────────────────────────────
+
+export interface WatchlistItem {
+  id: string;
+  userId: number;
+  fundCode: string;
+  name?: string;
+  note?: string;
+  simAmount?: number;   // 模拟买入金额
+  simNav?: number;      // 模拟买入净值
+  simDate?: string;     // 模拟买入日期
+  simShares?: number;   // 模拟持有份额
+  // Runtime
+  realtime?: FundRealtime;
 }
 
 // ── Fund Real-time Valuation (fundgz API) ────────────────────────────────────

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { AssetAccount, Transaction, TransactionType, FundRealtime } from '../types/asset';
-import { getDb, initDb } from '../lib/db';
+import { getDb, initDb, calcConfirmDate } from '../lib/db';
 import { invoke } from '@tauri-apps/api/core';
 
 interface AssetState {
@@ -21,13 +21,27 @@ interface AssetState {
   deleteAccount: (accountId: string, userId: number, username: string) => Promise<void>;
 
   fetchTransactions: (assetId: string) => Promise<void>;
-  addTransaction: (
+  addTransaction: (params: {
+    assetId: string;
+    userId: number;
+    type: TransactionType;
+    amount: number;
+    note?: string;
+    nav?: number;
+    sharesChange?: number;
+    status?: 'pending' | 'confirmed';
+    confirmDate?: string;
+    buyDate?: string;            // for pending: the purchase date
+    settlementDays?: number;     // 1 = T+1, 2 = T+2
+  }) => Promise<void>;
+
+  // Confirm a pending fund_buy transaction: triggers balance/share update
+  confirmPendingTransaction: (
+    txId: number,
     assetId: string,
     userId: number,
-    type: TransactionType,
-    amount: number,
-    note: string,
-    sharesChange?: number
+    username: string,
+    nav: number,
   ) => Promise<void>;
 
   updateValuations: () => Promise<void>;
@@ -46,7 +60,7 @@ export const useAssetStore = create<AssetState>()(
       clearError: () => set({ error: null }),
       clearAssets: () => set({ accounts: [], transactions: [] }),
 
-      // ── Fetch all accounts for user ────────────────────────────────
+      // ── Fetch all accounts for user ──────────────────────────────────
       fetchAccounts: async (userId, username) => {
         set({ isLoading: true, error: null });
         try {
@@ -67,6 +81,7 @@ export const useAssetStore = create<AssetState>()(
             fundCode: r.fund_code,
             shares: r.shares ?? undefined,
             costPrice: r.cost_price ?? undefined,
+            settlementDays: r.settlement_days ?? 1,
           }));
 
           set({ accounts, isLoading: false });
@@ -76,20 +91,21 @@ export const useAssetStore = create<AssetState>()(
         }
       },
 
-      // ── Add a new account ──────────────────────────────────────────
+      // ── Add a new account ────────────────────────────────────────────
       addAccount: async (userId, username, account) => {
         set({ error: null });
         try {
           const db = await getDb();
           const id = crypto.randomUUID();
           await db.execute(
-            `INSERT INTO assets (id, user_id, username, name, type, balance, currency, account_number, fund_code, shares, cost_price)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            `INSERT INTO assets (id, user_id, username, name, type, balance, currency, account_number, fund_code, shares, cost_price, settlement_days)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
               id, userId, username, account.name, account.type,
               account.balance, account.currency,
               account.accountNumber ?? null, account.fundCode ?? null,
               account.shares ?? null, account.costPrice ?? null,
+              account.settlementDays ?? 1,
             ]
           );
           await get().fetchAccounts(userId, username);
@@ -98,7 +114,7 @@ export const useAssetStore = create<AssetState>()(
         }
       },
 
-      // ── Update balance directly (after transaction) ────────────────
+      // ── Update balance directly ──────────────────────────────────────
       updateAccountBalance: async (accountId, newBalance, userId, username) => {
         set({ error: null });
         try {
@@ -110,7 +126,7 @@ export const useAssetStore = create<AssetState>()(
         }
       },
 
-      // ── Delete account ─────────────────────────────────────────────
+      // ── Delete account ───────────────────────────────────────────────
       deleteAccount: async (accountId, userId, username) => {
         set({ error: null });
         try {
@@ -123,7 +139,7 @@ export const useAssetStore = create<AssetState>()(
         }
       },
 
-      // ── Fetch transactions for a specific account ───────────────────
+      // ── Fetch transactions for a specific account ─────────────────────
       fetchTransactions: async (assetId) => {
         try {
           const db = await getDb();
@@ -137,6 +153,10 @@ export const useAssetStore = create<AssetState>()(
             userId: r.user_id,
             type: r.type,
             amount: r.amount,
+            nav: r.nav ?? undefined,
+            sharesChange: r.shares_change ?? undefined,
+            status: (r.status as 'pending' | 'confirmed') ?? 'confirmed',
+            confirmDate: r.confirm_date ?? undefined,
             note: r.note,
             timestamp: r.timestamp,
           }));
@@ -146,17 +166,38 @@ export const useAssetStore = create<AssetState>()(
         }
       },
 
-      // ── Add a transaction and update account balance ────────────────
-      addTransaction: async (assetId, userId, type, amount, note, sharesChange) => {
+      // ── Add a transaction ─────────────────────────────────────────────
+      addTransaction: async (params) => {
+        const {
+          assetId, userId, type, amount, note,
+          nav, sharesChange, settlementDays = 1,
+          buyDate,
+        } = params;
+
+        // Determine status and confirmDate for fund_buy
+        let status: 'pending' | 'confirmed' = params.status ?? 'confirmed';
+        let confirmDate = params.confirmDate;
+
+        if (type === 'fund_buy') {
+          if (!sharesChange) {
+            // Pending: shares not known yet
+            status = 'pending';
+            const base = buyDate ?? new Date().toISOString().split('T')[0];
+            confirmDate = calcConfirmDate(base, settlementDays);
+          } else {
+            status = 'confirmed';
+          }
+        }
+
         set({ error: null });
         try {
           const db = await getDb();
           await db.execute(
-            'INSERT INTO transactions (asset_id, user_id, type, amount, note) VALUES ($1, $2, $3, $4, $5)',
-            [assetId, userId, type, amount, note]
+            `INSERT INTO transactions (asset_id, user_id, type, amount, nav, shares_change, status, confirm_date, note)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [assetId, userId, type, amount, nav ?? null, sharesChange ?? null, status, confirmDate ?? null, note ?? null]
           );
 
-          // Update balance based on transaction type
           const account = get().accounts.find((a) => a.id === assetId);
           if (account) {
             let newBalance = account.balance;
@@ -167,26 +208,24 @@ export const useAssetStore = create<AssetState>()(
             } else if (type === 'expense' || type === 'transfer_out') {
               newBalance -= amount;
             } else if (type === 'fund_buy') {
-              newBalance += amount; // amount is the new market value after buy
-              newShares += sharesChange ?? 0;
+              if (status === 'confirmed' && sharesChange) {
+                // Immediately update balance and shares
+                newBalance += amount;
+                newShares += sharesChange;
+              }
+              // If pending, balance is NOT updated until confirmation
             } else if (type === 'fund_sell') {
               newBalance -= amount;
               newShares -= sharesChange ?? 0;
             }
 
-            // Ensure non-negative shares
             newShares = Math.max(0, newShares);
 
             await db.execute(
               'UPDATE assets SET balance = $1, shares = $2 WHERE id = $3',
               [newBalance, newShares, assetId]
             );
-
-            // Re-fetch the user's account list
-            const user = get().accounts.find(a => a.id === assetId);
-            if (user) {
-              await get().fetchAccounts(account.userId, '');
-            }
+            await get().fetchAccounts(account.userId, '');
           }
           await get().fetchTransactions(assetId);
         } catch (err: any) {
@@ -194,7 +233,48 @@ export const useAssetStore = create<AssetState>()(
         }
       },
 
-      // ── Fetch real-time valuations for all fund accounts ───────────
+      // ── Confirm a pending fund_buy ────────────────────────────────────
+      confirmPendingTransaction: async (txId, assetId, userId, username, nav) => {
+        set({ error: null });
+        try {
+          const db = await getDb();
+
+          // Get the pending transaction
+          const rows = await db.select<any[]>('SELECT * FROM transactions WHERE id = $1', [txId]);
+          if (!rows.length) throw new Error('交易记录不存在');
+          const tx = rows[0];
+          if (tx.status !== 'pending') throw new Error('该交易已确认');
+
+          const amount = parseFloat(tx.amount);
+          const shares = parseFloat((amount / nav).toFixed(2));
+
+          // Update the transaction to confirmed with nav and shares
+          await db.execute(
+            'UPDATE transactions SET status = "confirmed", nav = $1, shares_change = $2 WHERE id = $3',
+            [nav, shares, txId]
+          );
+
+          // Update asset: add amount to balance, add shares
+          const account = get().accounts.find((a) => a.id === assetId);
+          if (account) {
+            const newBalance = (account.balance ?? 0) + amount;
+            const newShares = (account.shares ?? 0) + shares;
+            const newCostPrice = nav; // update cost NAV to this confirmed NAV
+
+            await db.execute(
+              'UPDATE assets SET balance = $1, shares = $2, cost_price = $3 WHERE id = $4',
+              [newBalance, newShares, newCostPrice, assetId]
+            );
+          }
+
+          await get().fetchAccounts(userId, username);
+          await get().fetchTransactions(assetId);
+        } catch (err: any) {
+          set({ error: `确认失败: ${err.message || err}` });
+        }
+      },
+
+      // ── Fetch real-time valuations for all fund accounts ──────────────
       updateValuations: async () => {
         const { accounts } = get();
         const funds = accounts.filter((a) => a.type === 'fund' && a.fundCode);
@@ -206,15 +286,10 @@ export const useAssetStore = create<AssetState>()(
             const realtime: FundRealtime = await invoke('fetch_fund_realtime', { code: fund.fundCode });
             const idx = updated.findIndex((a) => a.id === fund.id);
             if (idx !== -1) {
-              // If we track shares, update balance = shares × estimated NAV
               if (updated[idx].shares && updated[idx].shares! > 0) {
                 const estimatedNAV = parseFloat(realtime.gsz);
                 if (!isNaN(estimatedNAV)) {
-                  updated[idx] = {
-                    ...updated[idx],
-                    balance: updated[idx].shares! * estimatedNAV,
-                    realtime,
-                  };
+                  updated[idx] = { ...updated[idx], balance: updated[idx].shares! * estimatedNAV, realtime };
                 } else {
                   updated[idx] = { ...updated[idx], realtime };
                 }

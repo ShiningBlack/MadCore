@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
-  TrendingUp, TrendingDown, Gift, Loader2
+  TrendingUp, TrendingDown, Gift, Loader2, Clock, Info
 } from 'lucide-react';
 import { AssetAccount, TransactionType } from '../types/asset';
 import { useAssetStore } from '../store/useAssetStore';
@@ -23,39 +23,47 @@ interface TxConfig {
 }
 
 const TX_TYPES: TxConfig[] = [
-  { type: 'income',       label: '收入',   icon: ArrowDownLeft,  color: 'text-emerald-400', delta: 1,  nonFundOnly: true },
-  { type: 'expense',      label: '支出',   icon: ArrowUpRight,   color: 'text-red-400',     delta: -1, nonFundOnly: true },
-  { type: 'transfer_in',  label: '转入',   icon: ArrowLeftRight, color: 'text-sky-400',     delta: 1  },
-  { type: 'transfer_out', label: '转出',   icon: ArrowLeftRight, color: 'text-orange-400',  delta: -1 },
-  { type: 'fund_buy',     label: '买入',   icon: TrendingUp,     color: 'text-violet-400',  delta: 1,  fundOnly: true },
-  { type: 'fund_sell',    label: '卖出',   icon: TrendingDown,   color: 'text-rose-400',    delta: -1, fundOnly: true },
-  { type: 'fund_dividend',label: '分红',   icon: Gift,           color: 'text-amber-400',   delta: 1,  fundOnly: true },
+  { type: 'income',        label: '收入', icon: ArrowDownLeft,  color: 'text-emerald-400', delta: 1,  nonFundOnly: true },
+  { type: 'expense',       label: '支出', icon: ArrowUpRight,   color: 'text-red-400',     delta: -1, nonFundOnly: true },
+  { type: 'transfer_in',   label: '转入', icon: ArrowLeftRight, color: 'text-sky-400',     delta: 1  },
+  { type: 'transfer_out',  label: '转出', icon: ArrowLeftRight, color: 'text-orange-400',  delta: -1 },
+  { type: 'fund_buy',      label: '买入', icon: TrendingUp,     color: 'text-violet-400',  delta: 1,  fundOnly: true },
+  { type: 'fund_sell',     label: '卖出', icon: TrendingDown,   color: 'text-rose-400',    delta: -1, fundOnly: true },
+  { type: 'fund_dividend', label: '分红', icon: Gift,           color: 'text-amber-400',   delta: 1,  fundOnly: true },
 ];
+
+// Date helpers
+const todayStr = () => new Date().toISOString().split('T')[0];
+const addBusinessDays = (dateStr: string, days: number): string => {
+  const d = new Date(dateStr);
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) added++;
+  }
+  return d.toISOString().split('T')[0];
+};
 
 export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
   const { addTransaction } = useAssetStore();
   const { user } = useUserStore();
 
   const isFund = account.type === 'fund';
-  const available = TX_TYPES.filter(t =>
-    isFund ? !t.nonFundOnly : !t.fundOnly
-  );
+  const available = TX_TYPES.filter(t => isFund ? !t.nonFundOnly : !t.fundOnly);
+  const settlementDays = account.settlementDays ?? 1;
 
   const [txType, setTxType] = useState<TransactionType>(available[0].type);
   const [amount, setAmount] = useState('');
+  const [buyDate, setBuyDate] = useState(todayStr());
+  const [nav, setNav] = useState('');
   const [sharesChange, setSharesChange] = useState('');
-  const [nav, setNav] = useState('');    // NAV price for fund buy/sell
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto-calculate amount for fund transactions
-  const handleNavOrSharesChange = (newNav: string, newShares: string) => {
-    const n = parseFloat(newNav);
-    const s = parseFloat(newShares);
-    if (!isNaN(n) && !isNaN(s)) {
-      setAmount((n * s).toFixed(2));
-    }
-  };
+  const isFundBuy = txType === 'fund_buy';
+  const isFundSell = txType === 'fund_sell';
+  const confirmDate = isFundBuy ? addBusinessDays(buyDate, settlementDays) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,14 +73,40 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
 
     setIsSubmitting(true);
     try {
-      await addTransaction(
-        account.id,
-        user.id,
-        txType,
-        numAmount,
-        note,
-        sharesChange ? parseFloat(sharesChange) : undefined
-      );
+      if (isFundBuy) {
+        // Pending T+N buy: only amount + date known
+        await addTransaction({
+          assetId: account.id,
+          userId: user.id,
+          type: 'fund_buy',
+          amount: numAmount,
+          note,
+          buyDate,
+          settlementDays,
+        });
+      } else if (isFundSell) {
+        const numNav = parseFloat(nav);
+        const numShares = parseFloat(sharesChange);
+        await addTransaction({
+          assetId: account.id,
+          userId: user.id,
+          type: 'fund_sell',
+          amount: numAmount,
+          nav: isNaN(numNav) ? undefined : numNav,
+          sharesChange: isNaN(numShares) ? undefined : numShares,
+          note,
+          status: 'confirmed',
+        });
+      } else {
+        await addTransaction({
+          assetId: account.id,
+          userId: user.id,
+          type: txType,
+          amount: numAmount,
+          note,
+          status: 'confirmed',
+        });
+      }
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -80,7 +114,6 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
   };
 
   const selectedConfig = TX_TYPES.find(t => t.type === txType)!;
-  const isFundBuySell = txType === 'fund_buy' || txType === 'fund_sell';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
@@ -119,34 +152,61 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
             </div>
           </div>
 
-          {/* Fund Buy/Sell: NAV + Shares */}
-          {isFundBuySell && (
+          {/* Fund Buy: T+N notice */}
+          {isFundBuy && (
+            <div className="rounded-2xl bg-violet-500/10 border border-violet-500/30 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-start gap-3">
+                <Info size={16} className="text-violet-400 mt-0.5 shrink-0" />
+                <div className="text-xs text-violet-300 leading-relaxed">
+                  <span className="font-bold">T+{settlementDays} 制度</span>：申购金额提交后，份额将于 <span className="font-bold text-white">T+{settlementDays} 日收盘后</span>按当日净值确认。届时在交易记录中手动确认份额即可。
+                </div>
+              </div>
+              {/* Buy Date */}
+              <div>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">申购日期</label>
+                <input
+                  type="date"
+                  value={buyDate}
+                  max={todayStr()}
+                  onChange={e => setBuyDate(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-white focus:ring-2 focus:ring-violet-500 outline-none text-sm"
+                />
+              </div>
+              {/* Confirm date preview */}
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <Clock size={12} className="text-violet-400" />
+                预计份额确认日：<span className="text-violet-300 font-mono font-bold">{confirmDate}</span>
+                （自动跳过节假日）
+              </div>
+            </div>
+          )}
+
+          {/* Fund Sell: NAV + Shares */}
+          {isFundSell && (
             <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">净值/价格</label>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">赎回净值</label>
                 <input
-                  type="number"
-                  step="0.0001"
-                  placeholder="1.0000"
-                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                  type="number" step="0.0001" placeholder="1.0000"
+                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-rose-500 outline-none font-mono text-sm"
                   value={nav}
                   onChange={e => {
                     setNav(e.target.value);
-                    handleNavOrSharesChange(e.target.value, sharesChange);
+                    const n = parseFloat(e.target.value), s = parseFloat(sharesChange);
+                    if (!isNaN(n) && !isNaN(s)) setAmount((n * s).toFixed(2));
                   }}
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">份额</label>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">赎回份额</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                  type="number" step="0.01" placeholder="0.00"
+                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-rose-500 outline-none font-mono text-sm"
                   value={sharesChange}
                   onChange={e => {
                     setSharesChange(e.target.value);
-                    handleNavOrSharesChange(nav, e.target.value);
+                    const n = parseFloat(nav), s = parseFloat(e.target.value);
+                    if (!isNaN(n) && !isNaN(s)) setAmount((n * s).toFixed(2));
                   }}
                 />
               </div>
@@ -156,17 +216,17 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
           {/* Amount */}
           <div>
             <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
-              金额（{account.currency}）
-              <span className={`ml-2 normal-case font-bold ${selectedConfig.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {selectedConfig.delta > 0 ? '余额增加' : '余额减少'}
-              </span>
+              {isFundBuy ? '申购金额' : `金额（${account.currency}）`}
+              {!isFundBuy && (
+                <span className={`ml-2 normal-case font-bold ${selectedConfig.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {selectedConfig.delta > 0 ? '余额增加' : '余额减少'}
+                </span>
+              )}
             </label>
             <input
               required
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="0.00"
+              type="number" step="0.01" min="0.01"
+              placeholder={isFundBuy ? '输入申购金额，份额 T+N 后确认' : '0.00'}
               className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-xl font-bold"
               value={amount}
               onChange={e => setAmount(e.target.value)}
@@ -177,9 +237,7 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
           <div>
             <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">备注（可选）</label>
             <input
-              type="text"
-              placeholder="例如：工资、餐饮、转账..."
-              maxLength={100}
+              type="text" placeholder="例如：定期定投、补仓..." maxLength={100}
               className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
               value={note}
               onChange={e => setNote(e.target.value)}
@@ -188,8 +246,7 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
 
           <div className="flex gap-3 pt-1">
             <button
-              type="button"
-              onClick={onClose}
+              type="button" onClick={onClose}
               className="flex-1 py-3.5 rounded-2xl border border-zinc-700 text-zinc-300 font-bold hover:bg-zinc-800 transition-all text-sm"
             >
               取消
@@ -197,9 +254,9 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
             <button
               type="submit"
               disabled={isSubmitting || !amount}
-              className="flex-2 flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 text-sm"
+              className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 text-sm"
             >
-              {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : '确认记录'}
+              {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : (isFundBuy ? '提交申购' : '确认记录')}
             </button>
           </div>
         </form>

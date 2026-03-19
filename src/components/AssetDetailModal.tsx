@@ -61,12 +61,15 @@ const TX_COLOR: Record<string, string> = {
 
 export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
   const { user } = useUserStore();
-  const { deleteAccount, showBalances, fetchTransactions, transactions } = useAssetStore();
+  const { deleteAccount, showBalances, fetchTransactions, transactions, confirmPendingTransaction } = useAssetStore();
 
   const [fundDetail, setFundDetail] = useState<FundDetailFull | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [period, setPeriod] = useState(90);
   const [showTxModal, setShowTxModal] = useState(false);
+  const [confirmingTxId, setConfirmingTxId] = useState<number | null>(null);
+  const [confirmNav, setConfirmNav] = useState('');
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const isFund = account?.type === 'fund';
 
@@ -402,7 +405,6 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
               </div>
             )}
 
-            {/* ── Transaction History ── */}
             <div>
               <div className="flex justify-between items-center mb-3">
                 <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
@@ -421,25 +423,101 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                   暂无交易记录
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {transactions.filter(t => t.assetId === account.id).map(tx => (
-                    <div key={tx.id} className="flex items-center justify-between bg-zinc-800/40 rounded-2xl px-4 py-3 border border-zinc-700/40">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-zinc-800 ${TX_COLOR[tx.type]}`}>
-                          {['income','transfer_in','fund_buy','fund_dividend'].includes(tx.type)
-                            ? <Plus size={13} /> : <Minus size={13} />}
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {transactions.filter(t => t.assetId === account.id).map(tx => {
+                    const isPending = tx.status === 'pending';
+                    const isConfirmTarget = confirmingTxId === tx.id;
+                    return (
+                      <div key={tx.id} className={`rounded-2xl px-4 py-3 border transition-all ${
+                        isPending
+                          ? 'bg-amber-500/5 border-amber-500/30'
+                          : 'bg-zinc-800/40 border-zinc-700/40'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-zinc-800 ${TX_COLOR[tx.type]}`}>
+                              {['income','transfer_in','fund_buy','fund_dividend'].includes(tx.type)
+                                ? <Plus size={13} /> : <Minus size={13} />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className={`text-xs font-bold ${TX_COLOR[tx.type]}`}>{TX_LABEL[tx.type] || tx.type}</p>
+                                {isPending && (
+                                  <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">
+                                    待确认
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-zinc-600">
+                                {isPending && tx.confirmDate
+                                  ? `预计 ${tx.confirmDate} 确认份额`
+                                  : tx.note || new Date(tx.timestamp).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm font-black ${TX_COLOR[tx.type]}`}>
+                              {['income','transfer_in','fund_buy','fund_dividend'].includes(tx.type) ? '+' : '-'}
+                              {Math.abs(tx.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                            </p>
+                            {isPending && (
+                              <button
+                                onClick={() => {
+                                  setConfirmingTxId(isConfirmTarget ? null : tx.id);
+                                  setConfirmNav(tx.nav?.toString() ?? '');
+                                }}
+                                className="text-[10px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-lg transition-all"
+                              >
+                                {isConfirmTarget ? '取消' : '确认份额'}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className={`text-xs font-bold ${TX_COLOR[tx.type]}`}>{TX_LABEL[tx.type] || tx.type}</p>
-                          <p className="text-[10px] text-zinc-600">{tx.note || new Date(tx.timestamp).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}</p>
-                        </div>
+
+                        {/* Inline confirmation form */}
+                        {isConfirmTarget && (
+                          <div className="mt-3 pt-3 border-t border-amber-500/20 flex gap-2 items-end animate-in slide-in-from-top-1 duration-150">
+                            <div className="flex-1">
+                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                                确认当日单位净値
+                              </label>
+                              <input
+                                type="number"
+                                step="0.0001"
+                                placeholder="将 T+N 算出的在此输入"
+                                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-amber-500/30 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 outline-none font-mono text-sm"
+                                value={confirmNav}
+                                onChange={e => setConfirmNav(e.target.value)}
+                                autoFocus
+                              />
+                              {confirmNav && !isNaN(parseFloat(confirmNav)) && (
+                                <p className="text-[10px] text-zinc-500 mt-1">
+                                  份额 = ¥{tx.amount.toFixed(2)} &divide; {parseFloat(confirmNav).toFixed(4)} = 
+                                  <span className="text-amber-400 font-mono font-bold">
+                                    {(tx.amount / parseFloat(confirmNav)).toFixed(2)} 份
+                                  </span>
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              disabled={isConfirming || !confirmNav || isNaN(parseFloat(confirmNav))}
+                              onClick={async () => {
+                                if (!user) return;
+                                setIsConfirming(true);
+                                await confirmPendingTransaction(tx.id, account.id, user.id, user.username, parseFloat(confirmNav));
+                                setConfirmingTxId(null);
+                                setConfirmNav('');
+                                setIsConfirming(false);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-900 font-black text-xs transition-all disabled:opacity-40 flex items-center gap-1"
+                            >
+                              {isConfirming ? <Loader2 size={13} className="animate-spin" /> : '写入确认'}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <p className={`text-sm font-black ${TX_COLOR[tx.type]}`}>
-                        {['income','transfer_in','fund_buy','fund_dividend'].includes(tx.type) ? '+' : '-'}
-                        {Math.abs(tx.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

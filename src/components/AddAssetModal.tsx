@@ -33,6 +33,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [fundCode, setFundCode] = useState('');
   const [shares, setShares] = useState('');
   const [costPrice, setCostPrice] = useState('');
+  const [settlementDays, setSettlementDays] = useState<1 | 2>(1);
 
   const fundCodeRef = useRef('');
 
@@ -51,6 +52,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setName(''); setBalance(''); setAccountNumber('');
     setFundCode(''); setShares(''); setCostPrice('');
     setCurrency('CNY'); setSelectedType('bank');
+    setSettlementDays(1);
     fundCodeRef.current = '';
   };
 
@@ -84,6 +86,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
         fundCode: fundCode || undefined,
         shares: shares ? parseFloat(shares) : undefined,
         costPrice: costPrice ? parseFloat(costPrice) : undefined,
+        settlementDays,
       };
       await addAccount(user.id, user.username, account);
       reset();
@@ -208,6 +211,33 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
           )}
 
+          {/* Settlement Days: T+1 or T+2 */}
+          {isFund && (
+            <div className="animate-in slide-in-from-top-1 duration-150">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+                份额确认周期
+              </label>
+              <div className="flex gap-2">
+                {([1, 2] as const).map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setSettlementDays(d)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all ${
+                      settlementDays === d
+                        ? 'border-violet-500 bg-violet-500/15 text-violet-300'
+                        : 'border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-zinc-600'
+                    }`}
+                  >
+                    T+{d}
+                    <span className="text-[10px] font-normal ml-1 opacity-70">
+                      {d === 1 ? '次日确认' : '隔日确认'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Balance + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div>

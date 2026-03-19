@@ -4,11 +4,13 @@ import { TotalNetWorth } from './TotalNetWorth';
 import { AssetList } from './AssetList';
 import { AssetDetailModal } from './AssetDetailModal';
 import { AddAssetModal } from './AddAssetModal';
+import { WatchlistPanel } from './WatchlistPanel';
 import {
   LayoutDashboard, Plus, LogOut, Loader2, AlertCircle, X, RefreshCw
 } from 'lucide-react';
 import { useAssetStore } from '../store/useAssetStore';
 import { useUserStore } from '../store/useUserStore';
+import { useWatchlistStore } from '../store/useWatchlistStore';
 
 export const AssetsDashboard: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -27,14 +29,18 @@ export const AssetsDashboard: React.FC = () => {
     clearAssets,
   } = useAssetStore();
 
+  const { fetchWatchlist, clearWatchlist } = useWatchlistStore();
+
   useEffect(() => {
     if (user) {
       fetchAccounts(user.id, user.username);
+      fetchWatchlist(user.id);
     }
   }, [user?.id]);
 
   const handleLogout = () => {
     clearAssets();
+    clearWatchlist();
     userLogout();
   };
 
@@ -155,6 +161,7 @@ export const AssetsDashboard: React.FC = () => {
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
             <AssetList title="流动资产" accounts={liquidAssets} onAccountClick={setSelectedAccount} />
             <AssetList title="投资资产" accounts={investmentAssets} onAccountClick={setSelectedAccount} />
+            <WatchlistPanel />
           </div>
         )}
       </div>

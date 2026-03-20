@@ -19,6 +19,7 @@ const getIconForType = (type: AssetAccount['type'], gszzl?: number) => {
     case 'wechat':
       return <MessageCircle size={24} className="text-green-500" />;
     case 'fund':
+    case 'stock':
       if (gszzl !== undefined) {
         return gszzl >= 0
           ? <TrendingUp size={24} className="text-rose-500" />
@@ -29,7 +30,7 @@ const getIconForType = (type: AssetAccount['type'], gszzl?: number) => {
 };
 
 const getBgForType = (type: AssetAccount['type'], gszzl?: number) => {
-  if (type === 'fund' && gszzl !== undefined) {
+  if ((type === 'fund' || type === 'stock') && gszzl !== undefined) {
     return gszzl >= 0 ? 'bg-rose-500/10' : 'bg-emerald-500/10';
   }
   switch (type) {
@@ -37,13 +38,24 @@ const getBgForType = (type: AssetAccount['type'], gszzl?: number) => {
     case 'bank': return 'bg-blue-500/10';
     case 'alipay': return 'bg-sky-500/10';
     case 'wechat': return 'bg-green-500/10';
-    case 'fund': return 'bg-rose-500/10';
+    case 'fund':
+    case 'stock': return 'bg-rose-500/10';
   }
 };
 
 export const AssetCard: React.FC<AssetCardProps> = ({ account, onClick }) => {
   const showBalances = useAssetStore(state => state.showBalances);
-  const gszzl = account.realtime ? parseFloat(account.realtime.gszzl) : undefined;
+  let gszzlRaw = NaN;
+  if (account.realtime) {
+    if ('gszzl' in account.realtime) {
+      gszzlRaw = parseFloat(account.realtime.gszzl ?? '');
+    } else {
+      const cr = (account.realtime as any).change_rate ?? (account.realtime as any).change_percent;
+      gszzlRaw = parseFloat(String(cr ?? ''));
+    }
+  }
+  // Only use gszzl if it's a valid finite number (QDII funds have no intraday estimate)
+  const gszzl = isFinite(gszzlRaw) ? gszzlRaw : undefined;
 
   return (
     <div

@@ -3,7 +3,7 @@ import { X, Wallet, CreditCard, Smartphone, MessageCircle, TrendingUp, Loader2, 
 import { AssetType, AssetAccount } from '../types/asset';
 import { useAssetStore } from '../store/useAssetStore';
 import { useUserStore } from '../store/useUserStore';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../lib/api';
 
 interface Props {
   isOpen: boolean;
@@ -11,11 +11,12 @@ interface Props {
 }
 
 const ASSET_TYPES: { type: AssetType; label: string; icon: any; color: string }[] = [
-  { type: 'cash',   label: '现金',   icon: Wallet,         color: 'text-amber-400'   },
-  { type: 'bank',   label: '银行卡', icon: CreditCard,     color: 'text-blue-400'    },
-  { type: 'alipay', label: '支付宝', icon: Smartphone,     color: 'text-sky-400'     },
-  { type: 'wechat', label: '微信',   icon: MessageCircle,  color: 'text-emerald-400' },
-  { type: 'fund',   label: '基金',   icon: TrendingUp,     color: 'text-violet-400'  },
+  { type: 'cash', label: '现金', icon: Wallet, color: 'text-amber-400' },
+  { type: 'bank', label: '银行卡', icon: CreditCard, color: 'text-blue-400' },
+  { type: 'alipay', label: '支付宝', icon: Smartphone, color: 'text-sky-400' },
+  { type: 'wechat', label: '微信', icon: MessageCircle, color: 'text-emerald-400' },
+  { type: 'fund', label: '基金', icon: TrendingUp, color: 'text-violet-400' },
+  { type: 'stock', label: '股票', icon: TrendingUp, color: 'text-rose-400' },
 ];
 
 export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
@@ -63,10 +64,11 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
       fundCodeRef.current = code;
       setIsFetchingFund(true);
       try {
-        const data: any = await invoke('fetch_fund_realtime', { code });
-        setName(data.name);
+        const dataList = await api<any[]>(`/api/finance/fund/realtime/${code}`);
+        const data = Array.isArray(dataList) ? dataList[0] : dataList;
+        setName(data?.name || data?.fund_name || data?.['基金名称'] || '');
         // Pre-fill cost price with current NAV
-        if (!costPrice) setCostPrice(data.dwjz);
+        if (!costPrice && data) setCostPrice(data.dwjz || data.gsz || data.current_price);
       } catch { /* ignore */ }
       finally { setIsFetchingFund(false); }
     }
@@ -77,18 +79,18 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
     if (!user) return;
     setIsSubmitting(true);
     try {
-      const account: Omit<AssetAccount, 'id' | 'userId'> = {
+      const account: Omit<AssetAccount, 'id' | 'userId' | 'createdAt'> = {
         name,
         type: selectedType,
         balance: parseFloat(balance) || 0,
         currency,
         accountNumber: accountNumber || undefined,
-        fundCode: fundCode || undefined,
+        symbolCode: fundCode || undefined,
         shares: shares ? parseFloat(shares) : undefined,
         costPrice: costPrice ? parseFloat(costPrice) : undefined,
         settlementDays,
       };
-      await addAccount(user.id, user.username, account);
+      await addAccount(account);
       reset();
       onClose();
     } finally {
@@ -98,7 +100,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const isFund = selectedType === 'fund';
+  const isInvest = selectedType === 'fund' || selectedType === 'stock';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
@@ -119,11 +121,10 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 key={type}
                 type="button"
                 onClick={() => { setSelectedType(type); setName(''); }}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-1.5 ${
-                  selectedType === type
-                    ? 'border-indigo-500 bg-indigo-500/10'
-                    : 'border-zinc-800 bg-zinc-800/50 hover:border-zinc-700'
-                }`}
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-1.5 ${selectedType === type
+                  ? 'border-indigo-500 bg-indigo-500/10'
+                  : 'border-zinc-800 bg-zinc-800/50 hover:border-zinc-700'
+                  }`}
               >
                 <Icon size={20} className={selectedType === type ? color : 'text-zinc-500'} />
                 <span className={`text-[10px] font-bold ${selectedType === type ? 'text-white' : 'text-zinc-500'}`}>{label}</span>
@@ -131,17 +132,16 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
             ))}
           </div>
 
-          {/* Fund Code */}
-          {isFund && (
+          {/* Fund/Stock Code */}
+          {isInvest && (
             <div className="animate-in slide-in-from-top-2 duration-200">
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">基金代码</label>
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '基金代码' : '股票代码'}</label>
               <div className="relative">
                 <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                 <input
                   required
                   type="text"
-                  placeholder="6位基金代码，如 016185"
-                  maxLength={6}
+                  placeholder={selectedType === 'fund' ? "6位基金代码，如 016185" : "股票代码，如 sh600519"}
                   className="w-full pl-11 pr-12 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                   value={fundCode}
                   onChange={e => handleFundCodeChange(e.target.value)}
@@ -156,7 +156,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* Name */}
           <div>
             <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
-              {isFund ? '基金名称' : selectedType === 'bank' ? '银行/卡名称' : '账户名称'}
+              {isInvest ? (selectedType === 'fund' ? '基金名称' : '股票名称') : selectedType === 'bank' ? '银行/卡名称' : '账户名称'}
             </label>
             <input
               required
@@ -183,11 +183,11 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Fund: shares + cost price */}
-          {isFund && (
+          {/* Fund/Stock: shares + cost price */}
+          {isInvest && (
             <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">持有份额</label>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '持有份额' : '持股数量'}</label>
                 <input
                   type="number"
                   step="0.01"
@@ -198,7 +198,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">成本净值</label>
+                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '成本净值' : '持仓成本价'}</label>
                 <input
                   type="number"
                   step="0.0001"
@@ -212,7 +212,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           )}
 
           {/* Settlement Days: T+1 or T+2 */}
-          {isFund && (
+          {isInvest && (
             <div className="animate-in slide-in-from-top-1 duration-150">
               <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
                 份额确认周期
@@ -223,11 +223,10 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     key={d}
                     type="button"
                     onClick={() => setSettlementDays(d)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all ${
-                      settlementDays === d
-                        ? 'border-violet-500 bg-violet-500/15 text-violet-300'
-                        : 'border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-zinc-600'
-                    }`}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all ${settlementDays === d
+                      ? 'border-violet-500 bg-violet-500/15 text-violet-300'
+                      : 'border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-zinc-600'
+                      }`}
                   >
                     T+{d}
                     <span className="text-[10px] font-normal ml-1 opacity-70">
@@ -242,7 +241,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
-                {isFund ? '市值（自动计算）' : '余额'}
+                {isInvest ? '当前市值（自动计算）' : '余额'}
               </label>
               <input
                 required
@@ -270,7 +269,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           <button
             type="submit"
-            disabled={isSubmitting || (isFund && !name)}
+            disabled={isSubmitting || (isInvest && !name)}
             className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
           >
             {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : '确认添加'}

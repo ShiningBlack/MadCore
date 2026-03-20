@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Search, TrendingUp, DollarSign, Calendar, StickyNote, Loader2 } from 'lucide-react';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { useUserStore } from '../store/useUserStore';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../lib/api';
 import { FundRealtime } from '../types/asset';
 
 interface Props {
@@ -32,9 +32,10 @@ export const AddWatchlistModal: React.FC<Props> = ({ onClose }) => {
     setLookupError('');
     setPreview(null);
     try {
-      const rt: FundRealtime = await invoke('fetch_fund_realtime', { code: fundCode.trim() });
+      const dataList = await api<any[]>(`/api/finance/fund/realtime/${fundCode.trim()}`);
+      const rt = Array.isArray(dataList) ? dataList[0] : dataList;
       setPreview(rt);
-      if (!name) setName(rt.name);
+      if (!name) setName(rt.name || rt.fund_name || rt['基金名称'] || '');
     } catch (e: any) {
       setLookupError('找不到该基金，请确认代码是否正确');
     } finally {
@@ -48,15 +49,16 @@ export const AddWatchlistModal: React.FC<Props> = ({ onClose }) => {
     setIsSubmitting(true);
     try {
       const simAmountNum = simEnabled ? parseFloat(simAmount) : undefined;
-      const simNav = simEnabled && preview ? parseFloat(preview.dwjz) : undefined;
-      const simShares = simEnabled && simAmountNum && simNav ? parseFloat((simAmountNum / simNav).toFixed(2)) : undefined;
+      const simPrice = simEnabled && preview ? parseFloat(preview.dwjz || preview.gsz || preview.current_price || '0') : undefined;
+      const simShares = simEnabled && simAmountNum && simPrice ? parseFloat((simAmountNum / simPrice).toFixed(2)) : undefined;
 
-      await addToWatchlist(user.id, {
-        fundCode: fundCode.trim(),
-        name: name || preview?.name,
+      await addToWatchlist({
+        symbolCode: fundCode.trim(),
+        symbolType: 'fund',
+        name: name || preview?.name || preview?.fund_name,
         note: note || undefined,
         simAmount: simAmountNum,
-        simNav,
+        simPrice,
         simDate: simEnabled ? simDate : undefined,
         simShares,
       });

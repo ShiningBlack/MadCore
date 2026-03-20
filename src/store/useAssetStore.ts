@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { AssetAccount, Transaction, TransactionType, FundRealtime } from '../types/asset';
-import { getDb, initDb, calcConfirmDate } from '../lib/db';
-import { invoke } from '@tauri-apps/api/core';
+import { AssetAccount, Transaction, TransactionType } from '../types/asset';
+import { api } from '../lib/api';
 
 interface AssetState {
   accounts: AssetAccount[];
@@ -15,35 +14,25 @@ interface AssetState {
   clearError: () => void;
   clearAssets: () => void;
 
-  fetchAccounts: (userId: number, username: string) => Promise<void>;
-  addAccount: (userId: number, username: string, account: Omit<AssetAccount, 'id' | 'userId'>) => Promise<void>;
-  updateAccountBalance: (accountId: string, newBalance: number, userId: number, username: string) => Promise<void>;
-  deleteAccount: (accountId: string, userId: number, username: string) => Promise<void>;
+  fetchAccounts: () => Promise<void>;
+  addAccount: (account: Omit<AssetAccount, 'id' | 'userId' | 'createdAt'>) => Promise<void>;
+  updateAccount: (accountId: string, updates: Partial<AssetAccount>) => Promise<void>;
+  deleteAccount: (accountId: string) => Promise<void>;
 
-  fetchTransactions: (assetId: string) => Promise<void>;
+  fetchTransactions: () => Promise<void>;
   addTransaction: (params: {
-    assetId: string;
-    userId: number;
+    asset_id: string;
     type: TransactionType;
     amount: number;
     note?: string;
-    nav?: number;
-    sharesChange?: number;
+    price?: number;
+    shares_change?: number;
+    fee?: number;
     status?: 'pending' | 'confirmed';
-    confirmDate?: string;
-    buyDate?: string;            // for pending: the purchase date
-    settlementDays?: number;     // 1 = T+1, 2 = T+2
+    confirm_date?: string;
   }) => Promise<void>;
 
-  // Confirm a pending fund_buy transaction: triggers balance/share update
-  confirmPendingTransaction: (
-    txId: number,
-    assetId: string,
-    userId: number,
-    username: string,
-    nav: number,
-  ) => Promise<void>;
-
+  confirmPendingTransaction: (txId: number, nav: number) => Promise<void>;
   updateValuations: () => Promise<void>;
 }
 
@@ -61,29 +50,10 @@ export const useAssetStore = create<AssetState>()(
       clearAssets: () => set({ accounts: [], transactions: [] }),
 
       // ── Fetch all accounts for user ──────────────────────────────────
-      fetchAccounts: async (userId, username) => {
+      fetchAccounts: async () => {
         set({ isLoading: true, error: null });
         try {
-          const db = await initDb();
-          const rows = await db.select<any[]>(
-            'SELECT * FROM assets WHERE user_id = $1 OR (user_id = 0 AND username = $2) ORDER BY created_at DESC',
-            [userId, username]
-          );
-
-          const accounts: AssetAccount[] = rows.map((r) => ({
-            id: r.id,
-            userId: r.user_id ?? userId,
-            name: r.name,
-            type: r.type,
-            balance: r.balance,
-            currency: r.currency,
-            accountNumber: r.account_number,
-            fundCode: r.fund_code,
-            shares: r.shares ?? undefined,
-            costPrice: r.cost_price ?? undefined,
-            settlementDays: r.settlement_days ?? 1,
-          }));
-
+          const accounts = await api<AssetAccount[]>('/api/assets/');
           set({ accounts, isLoading: false });
           get().updateValuations();
         } catch (err: any) {
@@ -92,74 +62,66 @@ export const useAssetStore = create<AssetState>()(
       },
 
       // ── Add a new account ────────────────────────────────────────────
-      addAccount: async (userId, username, account) => {
+      addAccount: async (account) => {
         set({ error: null });
         try {
-          const db = await getDb();
-          const id = crypto.randomUUID();
-          await db.execute(
-            `INSERT INTO assets (id, user_id, username, name, type, balance, currency, account_number, fund_code, shares, cost_price, settlement_days)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-            [
-              id, userId, username, account.name, account.type,
-              account.balance, account.currency,
-              account.accountNumber ?? null, account.fundCode ?? null,
-              account.shares ?? null, account.costPrice ?? null,
-              account.settlementDays ?? 1,
-            ]
-          );
-          await get().fetchAccounts(userId, username);
+          await api('/api/assets/', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: account.name,
+              type: account.type,
+              balance: account.balance,
+              currency: account.currency,
+              account_number: account.accountNumber,
+              symbol_code: account.symbolCode,
+              shares: account.shares,
+              cost_price: account.costPrice,
+              settlement_days: account.settlementDays ?? 1,
+            }),
+          });
+          await get().fetchAccounts();
         } catch (err: any) {
           set({ error: `保存失败: ${err.message || err}` });
         }
       },
 
-      // ── Update balance directly ──────────────────────────────────────
-      updateAccountBalance: async (accountId, newBalance, userId, username) => {
+      // ── Update account ──────────────────────────────────────
+      updateAccount: async (accountId, updates) => {
         set({ error: null });
         try {
-          const db = await getDb();
-          await db.execute('UPDATE assets SET balance = $1 WHERE id = $2', [newBalance, accountId]);
-          await get().fetchAccounts(userId, username);
+          const payload: any = { ...updates };
+          if (updates.accountNumber !== undefined) payload.account_number = updates.accountNumber;
+          if (updates.symbolCode !== undefined) payload.symbol_code = updates.symbolCode;
+          if (updates.costPrice !== undefined) payload.cost_price = updates.costPrice;
+          if (updates.settlementDays !== undefined) payload.settlement_days = updates.settlementDays;
+
+          await api(`/api/assets/${accountId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+          });
+          await get().fetchAccounts();
         } catch (err: any) {
           set({ error: `更新失败: ${err.message || err}` });
         }
       },
 
       // ── Delete account ───────────────────────────────────────────────
-      deleteAccount: async (accountId, userId, username) => {
+      deleteAccount: async (accountId) => {
         set({ error: null });
         try {
-          const db = await getDb();
-          await db.execute('DELETE FROM transactions WHERE asset_id = $1', [accountId]);
-          await db.execute('DELETE FROM assets WHERE id = $1', [accountId]);
-          await get().fetchAccounts(userId, username);
+          await api(`/api/assets/${accountId}`, {
+            method: 'DELETE',
+          });
+          await get().fetchAccounts();
         } catch (err: any) {
           set({ error: `删除失败: ${err.message || err}` });
         }
       },
 
-      // ── Fetch transactions for a specific account ─────────────────────
-      fetchTransactions: async (assetId) => {
+      // ── Fetch all transactions ─────────────────────
+      fetchTransactions: async () => {
         try {
-          const db = await getDb();
-          const rows = await db.select<any[]>(
-            'SELECT * FROM transactions WHERE asset_id = $1 ORDER BY timestamp DESC LIMIT 100',
-            [assetId]
-          );
-          const transactions: Transaction[] = rows.map((r) => ({
-            id: r.id,
-            assetId: r.asset_id,
-            userId: r.user_id,
-            type: r.type,
-            amount: r.amount,
-            nav: r.nav ?? undefined,
-            sharesChange: r.shares_change ?? undefined,
-            status: (r.status as 'pending' | 'confirmed') ?? 'confirmed',
-            confirmDate: r.confirm_date ?? undefined,
-            note: r.note,
-            timestamp: r.timestamp,
-          }));
+          const transactions = await api<Transaction[]>('/api/transactions/');
           set({ transactions });
         } catch (err: any) {
           console.error('fetchTransactions error:', err);
@@ -168,137 +130,87 @@ export const useAssetStore = create<AssetState>()(
 
       // ── Add a transaction ─────────────────────────────────────────────
       addTransaction: async (params) => {
-        const {
-          assetId, userId, type, amount, note,
-          nav, sharesChange, settlementDays = 1,
-          buyDate,
-        } = params;
-
-        // Determine status and confirmDate for fund_buy
-        let status: 'pending' | 'confirmed' = params.status ?? 'confirmed';
-        let confirmDate = params.confirmDate;
-
-        if (type === 'fund_buy') {
-          if (!sharesChange) {
-            // Pending: shares not known yet
-            status = 'pending';
-            const base = buyDate ?? new Date().toISOString().split('T')[0];
-            confirmDate = calcConfirmDate(base, settlementDays);
-          } else {
-            status = 'confirmed';
-          }
-        }
-
         set({ error: null });
         try {
-          const db = await getDb();
-          await db.execute(
-            `INSERT INTO transactions (asset_id, user_id, type, amount, nav, shares_change, status, confirm_date, note)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-            [assetId, userId, type, amount, nav ?? null, sharesChange ?? null, status, confirmDate ?? null, note ?? null]
-          );
+          await api('/api/transactions/', {
+            method: 'POST',
+            body: JSON.stringify(params),
+          });
 
-          const account = get().accounts.find((a) => a.id === assetId);
-          if (account) {
-            let newBalance = account.balance;
-            let newShares = account.shares ?? 0;
-
-            if (type === 'income' || type === 'transfer_in' || type === 'fund_dividend') {
-              newBalance += amount;
-            } else if (type === 'expense' || type === 'transfer_out') {
-              newBalance -= amount;
-            } else if (type === 'fund_buy') {
-              if (status === 'confirmed' && sharesChange) {
-                // Immediately update balance and shares
-                newBalance += amount;
-                newShares += sharesChange;
-              }
-              // If pending, balance is NOT updated until confirmation
-            } else if (type === 'fund_sell') {
-              newBalance -= amount;
-              newShares -= sharesChange ?? 0;
-            }
-
-            newShares = Math.max(0, newShares);
-
-            await db.execute(
-              'UPDATE assets SET balance = $1, shares = $2 WHERE id = $3',
-              [newBalance, newShares, assetId]
-            );
-            await get().fetchAccounts(account.userId, '');
-          }
-          await get().fetchTransactions(assetId);
+          await get().fetchAccounts();
+          await get().fetchTransactions();
         } catch (err: any) {
           set({ error: `交易失败: ${err.message || err}` });
         }
       },
 
       // ── Confirm a pending fund_buy ────────────────────────────────────
-      confirmPendingTransaction: async (txId, assetId, userId, username, nav) => {
+      confirmPendingTransaction: async (txId, price) => {
         set({ error: null });
         try {
-          const db = await getDb();
-
-          // Get the pending transaction
-          const rows = await db.select<any[]>('SELECT * FROM transactions WHERE id = $1', [txId]);
-          if (!rows.length) throw new Error('交易记录不存在');
-          const tx = rows[0];
-          if (tx.status !== 'pending') throw new Error('该交易已确认');
-
-          const amount = parseFloat(tx.amount);
-          const shares = parseFloat((amount / nav).toFixed(2));
-
-          // Update the transaction to confirmed with nav and shares
-          await db.execute(
-            'UPDATE transactions SET status = "confirmed", nav = $1, shares_change = $2 WHERE id = $3',
-            [nav, shares, txId]
-          );
-
-          // Update asset: add amount to balance, add shares
-          const account = get().accounts.find((a) => a.id === assetId);
-          if (account) {
-            const newBalance = (account.balance ?? 0) + amount;
-            const newShares = (account.shares ?? 0) + shares;
-            const newCostPrice = nav; // update cost NAV to this confirmed NAV
-
-            await db.execute(
-              'UPDATE assets SET balance = $1, shares = $2, cost_price = $3 WHERE id = $4',
-              [newBalance, newShares, newCostPrice, assetId]
-            );
-          }
-
-          await get().fetchAccounts(userId, username);
-          await get().fetchTransactions(assetId);
+          // This assumes we simply update the transaction price, 
+          // and the backend handles updating shares/balance if implemented that way, 
+          // or we may need custom logic.
+          // Since the backend handles the business logic, it's safer to just PUT the transaction.
+          await api(`/api/transactions/${txId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              status: 'confirmed',
+              price,
+            }),
+          });
+          
+          await get().fetchAccounts();
+          await get().fetchTransactions();
         } catch (err: any) {
           set({ error: `确认失败: ${err.message || err}` });
         }
       },
 
-      // ── Fetch real-time valuations for all fund accounts ──────────────
+      // ── Fetch real-time valuations for all fund/stock accounts ──────────────
       updateValuations: async () => {
         const { accounts } = get();
-        const funds = accounts.filter((a) => a.type === 'fund' && a.fundCode);
-        if (funds.length === 0) return;
+        const investAccounts = accounts.filter(
+          (a) => (a.type === 'fund' || a.type === 'stock') && a.symbolCode && a.symbolCode !== 'undefined'
+        );
+        if (investAccounts.length === 0) return;
+
+        // Fetch all valuations in parallel
+        const realtimeResults = await Promise.all(
+          investAccounts.map(async (account) => {
+            try {
+              const endpoint = account.type === 'fund'
+                ? `/api/finance/fund/realtime/${account.symbolCode}`
+                : `/api/finance/stock/realtime/${account.symbolCode}`;
+              const data = await api<any>(endpoint);
+              // Server returns array for fund (one-element list), object for stock
+              const realtime = Array.isArray(data) ? data[0] : data;
+              return { id: account.id, realtime };
+            } catch (e) {
+              console.warn(`Failed to update valuation for ${account.name}`, e);
+              return { id: account.id, realtime: null };
+            }
+          })
+        );
 
         const updated = [...accounts];
-        for (const fund of funds) {
-          try {
-            const realtime: FundRealtime = await invoke('fetch_fund_realtime', { code: fund.fundCode });
-            const idx = updated.findIndex((a) => a.id === fund.id);
-            if (idx !== -1) {
-              if (updated[idx].shares && updated[idx].shares! > 0) {
-                const estimatedNAV = parseFloat(realtime.gsz);
-                if (!isNaN(estimatedNAV)) {
-                  updated[idx] = { ...updated[idx], balance: updated[idx].shares! * estimatedNAV, realtime };
-                } else {
-                  updated[idx] = { ...updated[idx], realtime };
-                }
-              } else {
-                updated[idx] = { ...updated[idx], realtime };
-              }
+        for (const { id, realtime } of realtimeResults) {
+          if (!realtime) continue;
+          const idx = updated.findIndex((a) => a.id === id);
+          if (idx === -1) continue;
+          const acc = updated[idx];
+          if (acc.shares && acc.shares > 0) {
+            // gsz = estimated NAV (fund), price = stock price
+            const estimatedPrice = acc.type === 'fund'
+              ? parseFloat(realtime.gsz || realtime.dwjz || '0')
+              : parseFloat(String(realtime.price || '0'));
+            if (!isNaN(estimatedPrice) && estimatedPrice > 0) {
+              updated[idx] = { ...acc, balance: acc.shares * estimatedPrice, realtime };
+            } else {
+              updated[idx] = { ...acc, realtime };
             }
-          } catch (e) {
-            console.warn(`Failed to update valuation for ${fund.name}`, e);
+          } else {
+            updated[idx] = { ...acc, realtime };
           }
         }
         set({ accounts: updated });

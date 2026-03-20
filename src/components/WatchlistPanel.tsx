@@ -4,7 +4,6 @@ import {
   BarChart2, Minus, AlertCircle
 } from 'lucide-react';
 import { useWatchlistStore } from '../store/useWatchlistStore';
-import { useUserStore } from '../store/useUserStore';
 import { AddWatchlistModal } from './AddWatchlistModal';
 import { WatchlistItem } from '../types/asset';
 
@@ -12,17 +11,40 @@ const fmt = (n: number, d = 2) => n.toLocaleString('zh-CN', { minimumFractionDig
 
 const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ item, onRemove }) => {
   const { realtime } = item;
-  const changeRate = realtime ? parseFloat(realtime.gszzl) : null;
-  const isUp = changeRate !== null && changeRate >= 0;
+  
+  let changeRate: number | null = null;
+  let currentNav: number | null = null;
+  let dwjzOrDate: string | undefined;
+  let gztimeOrName: string | undefined;
+
+  if (realtime) {
+    if ('gszzl' in realtime) {
+      const parsedCr = parseFloat(realtime.gszzl ?? '');
+      changeRate = isFinite(parsedCr) ? parsedCr : null;
+      const parsedNav = parseFloat(realtime.gsz ?? realtime.dwjz ?? '');
+      currentNav = isFinite(parsedNav) ? parsedNav : null;
+      dwjzOrDate = realtime.dwjz;
+      gztimeOrName = realtime.gztime;
+    } else {
+      const cr = (realtime as any).change_rate ?? (realtime as any).change_percent;
+      const parsedCr = parseFloat(String(cr ?? ''));
+      changeRate = isFinite(parsedCr) ? parsedCr : null;
+      const parsedNav = parseFloat(String((realtime as any).price ?? ''));
+      currentNav = isFinite(parsedNav) ? parsedNav : null;
+      dwjzOrDate = realtime.jzrq ?? (realtime as any).date;
+      gztimeOrName = (realtime as any).name;
+    }
+  }
+
+  const isUp = changeRate !== null && changeRate > 0;
   const isDown = changeRate !== null && changeRate < 0;
-  const currentNav = realtime ? parseFloat(realtime.gsz || realtime.dwjz) : null;
 
   // Simulation PnL
   let simPnl: number | null = null;
   let simPnlPct: number | null = null;
-  if (item.simShares && currentNav && item.simNav) {
+  if (item.simShares && currentNav && item.simPrice) {
     const currentValue = item.simShares * currentNav;
-    const costValue = item.simShares * item.simNav;
+    const costValue = item.simShares * item.simPrice;
     simPnl = currentValue - costValue;
     simPnlPct = costValue > 0 ? (simPnl / costValue) * 100 : 0;
   }
@@ -36,7 +58,7 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1 pr-2">
-            <p className="text-xs font-mono text-zinc-500">{item.fundCode}</p>
+            <p className="text-xs font-mono text-zinc-500">{item.symbolCode}</p>
             <p className="text-sm font-bold text-white truncate">{item.name || realtime?.name || '—'}</p>
           </div>
           <button
@@ -48,16 +70,16 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
         </div>
 
         {/* Real-time NAV */}
-        {realtime ? (
+        {realtime && currentNav !== null ? (
           <div>
             <div className="flex items-baseline justify-between">
-              <span className="text-xl font-mono font-black text-white">{realtime.gsz}</span>
+              <span className="text-xl font-mono font-black text-white">{currentNav.toFixed(4)}</span>
               <div className={`flex items-center gap-1 text-sm font-bold ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-zinc-500'}`}>
                 {isUp ? <TrendingUp size={13} /> : isDown ? <TrendingDown size={13} /> : <Minus size={13} />}
-                {isUp ? '+' : ''}{realtime.gszzl}%
+                {changeRate !== null ? `${isUp ? '+' : ''}${changeRate}%` : '—'}
               </div>
             </div>
-            <p className="text-[10px] text-zinc-600 mt-0.5">净值 {realtime.dwjz} · {realtime.gztime}</p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">净值 {dwjzOrDate ?? '—'} · {gztimeOrName ?? '—'}</p>
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-zinc-600">
@@ -84,7 +106,7 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
               )}
             </div>
             {item.simShares && (
-              <p className="text-zinc-600 text-[10px] mt-0.5">{fmt(item.simShares)} 份 · 成本 {item.simNav?.toFixed(4)}</p>
+              <p className="text-zinc-600 text-[10px] mt-0.5">{fmt(item.simShares)} 份 · 成本 {item.simPrice?.toFixed(4)}</p>
             )}
           </div>
         )}
@@ -95,7 +117,6 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
 
 export const WatchlistPanel: React.FC = () => {
   const { items, isLoading, updateWatchlistValuations, removeFromWatchlist } = useWatchlistStore();
-  const { user } = useUserStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -164,7 +185,7 @@ export const WatchlistPanel: React.FC = () => {
               <WatchCard
                 key={item.id}
                 item={item}
-                onRemove={() => user && removeFromWatchlist(item.id, user.id)}
+                onRemove={() => removeFromWatchlist(item.id)}
               />
             ))}
           </div>

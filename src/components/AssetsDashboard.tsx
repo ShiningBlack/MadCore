@@ -130,7 +130,7 @@ export const AssetsDashboard: React.FC = () => {
                 你好，{user?.username} 👋
               </h1>
               <p className="text-xs text-zinc-500 font-medium">
-                {investmentAssets.length > 0 && (
+                {investmentAssets.length > 0 && todayPnL !== 0 && (
                   <span className={todayPnL >= 0 ? 'text-rose-400' : 'text-emerald-400'}>
                     今日浮动 {todayPnL >= 0 ? '+' : ''}
                     {showBalances ? `${todayPnL.toFixed(2)} (${todayPnLPct.toFixed(2)}%)` : '***'} ·{' '}

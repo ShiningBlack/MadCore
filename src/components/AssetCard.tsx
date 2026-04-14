@@ -60,24 +60,24 @@ export const AssetCard: React.FC<AssetCardProps> = ({ account, onClick }) => {
   return (
     <div
       onClick={() => onClick(account)}
-      className="bg-white dark:bg-zinc-900/50 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-zinc-800 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all cursor-pointer flex items-center justify-between group relative overflow-hidden"
+      className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-500/10 transition-all cursor-pointer flex items-center justify-between group relative overflow-hidden"
     >
       <div className="flex items-center gap-4 relative z-10">
         <div className={`p-3 rounded-2xl transition-colors ${getBgForType(account.type, gszzl)}`}>
           {getIconForType(account.type, gszzl)}
         </div>
         <div>
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+          <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
             {account.name}
           </h3>
           <div className="flex items-center gap-2 mt-0.5">
             {account.accountNumber && (
-              <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">
                 *{account.accountNumber.slice(-4)}
               </span>
             )}
             {gszzl !== undefined && (
-              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest ${gszzl >= 0 ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest ${gszzl >= 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
                 {gszzl >= 0 ? '+' : ''}{gszzl.toFixed(2)}%
               </span>
             )}
@@ -86,12 +86,12 @@ export const AssetCard: React.FC<AssetCardProps> = ({ account, onClick }) => {
       </div>
 
       <div className="text-right relative z-10">
-        <div className="font-black text-lg text-gray-900 dark:text-gray-100">
+        <div className="font-black text-lg text-slate-900">
           {showBalances
             ? `¥${account.balance.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
             : '******'}
         </div>
-        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-0.5">
+        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">
           {account.currency}
         </div>
       </div>

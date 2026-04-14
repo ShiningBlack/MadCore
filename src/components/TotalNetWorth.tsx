@@ -23,20 +23,20 @@ export const TotalNetWorth: React.FC<Props> = ({
   const hasFund = investmentTotal > 0;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/20">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-8 text-white shadow-xl shadow-indigo-200/30">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-16 -right-16 w-72 h-72 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute -top-16 -right-16 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <p className="text-white/60 font-bold text-xs tracking-[0.25em] uppercase">总净资产 (CNY)</p>
+          <p className="text-white/70 font-bold text-xs tracking-[0.25em] uppercase">总净资产 (CNY)</p>
           <button
             onClick={onToggle}
-            className="p-2 rounded-xl hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+            className="p-2 rounded-xl hover:bg-white/10 transition-colors text-white/70 hover:text-white"
           >
             {show ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
@@ -44,7 +44,7 @@ export const TotalNetWorth: React.FC<Props> = ({
 
         {/* Total */}
         <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-3xl font-black opacity-50">¥</span>
+          <span className="text-3xl font-black opacity-60">¥</span>
           <span className="text-5xl font-black tracking-tighter">
             {fmt(total, show)}
           </span>
@@ -59,7 +59,7 @@ export const TotalNetWorth: React.FC<Props> = ({
               {isPnLPos ? '+' : ''}{show ? todayPnL.toFixed(2) : '***'}
             </span>
             {todayPnLPct !== undefined && (
-              <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] bg-white/10">
+              <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] bg-white/20">
                 {isPnLPos ? '+' : ''}{todayPnLPct.toFixed(2)}%
               </span>
             )}
@@ -69,21 +69,21 @@ export const TotalNetWorth: React.FC<Props> = ({
         {/* Breakdown */}
         <div className="flex gap-4 mt-auto pt-6 border-t border-white/10">
           <div className="flex items-center gap-2.5 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-              <Wallet size={15} className="text-white/70" />
+            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+              <Wallet size={15} className="text-white/80" />
             </div>
             <div>
-              <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider">流动资产</p>
+              <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider">流动资产</p>
               <p className="text-sm font-black">¥{fmt(liquidTotal, show)}</p>
             </div>
           </div>
           <div className="w-px bg-white/10" />
           <div className="flex items-center gap-2.5 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-              <TrendingUp size={15} className="text-white/70" />
+            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={15} className="text-white/80" />
             </div>
             <div>
-              <p className="text-[10px] text-white/50 font-bold uppercase tracking-wider">投资资产</p>
+              <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider">投资资产</p>
               <p className="text-sm font-black">¥{fmt(investmentTotal, show)}</p>
             </div>
           </div>

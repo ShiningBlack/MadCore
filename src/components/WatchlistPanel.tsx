@@ -50,20 +50,20 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
   }
 
   return (
-    <div className="relative flex-shrink-0 w-52 bg-zinc-900 rounded-2xl border border-zinc-800 hover:border-zinc-700 transition-all group overflow-hidden">
+    <div className="relative flex-shrink-0 w-52 bg-white rounded-2xl border border-slate-200 hover:border-slate-300 transition-all group overflow-hidden shadow-sm">
       {/* Color bar */}
-      <div className={`absolute top-0 left-0 right-0 h-0.5 ${isUp ? 'bg-emerald-500' : isDown ? 'bg-red-500' : 'bg-zinc-700'}`} />
+      <div className={`absolute top-0 left-0 right-0 h-0.5 ${isUp ? 'bg-emerald-500' : isDown ? 'bg-red-500' : 'bg-slate-300'}`} />
 
       <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1 pr-2">
-            <p className="text-xs font-mono text-zinc-500">{item.symbolCode}</p>
-            <p className="text-sm font-bold text-white truncate">{item.name || realtime?.name || '—'}</p>
+            <p className="text-xs font-mono text-slate-500">{item.symbolCode}</p>
+            <p className="text-sm font-bold text-slate-900 truncate">{item.name || realtime?.name || '—'}</p>
           </div>
           <button
             onClick={onRemove}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/15 rounded-lg text-zinc-600 hover:text-red-400"
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500"
           >
             <Trash2 size={12} />
           </button>
@@ -73,16 +73,16 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
         {realtime && currentNav !== null ? (
           <div>
             <div className="flex items-baseline justify-between">
-              <span className="text-xl font-mono font-black text-white">{currentNav.toFixed(4)}</span>
-              <div className={`flex items-center gap-1 text-sm font-bold ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-zinc-500'}`}>
+              <span className="text-xl font-mono font-black text-slate-900">{currentNav.toFixed(4)}</span>
+              <div className={`flex items-center gap-1 text-sm font-bold ${isUp ? 'text-emerald-500' : isDown ? 'text-red-500' : 'text-slate-400'}`}>
                 {isUp ? <TrendingUp size={13} /> : isDown ? <TrendingDown size={13} /> : <Minus size={13} />}
                 {changeRate !== null ? `${isUp ? '+' : ''}${changeRate}%` : '—'}
               </div>
             </div>
-            <p className="text-[10px] text-zinc-600 mt-0.5">净值 {dwjzOrDate ?? '—'} · {gztimeOrName ?? '—'}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">净值 {dwjzOrDate ?? '—'} · {gztimeOrName ?? '—'}</p>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs text-zinc-600">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
             <AlertCircle size={12} />
             暂无数据
           </div>
@@ -90,15 +90,15 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
 
         {/* Simulation PnL */}
         {item.simAmount && (
-          <div className={`rounded-xl px-3 py-2 text-xs ${simPnl !== null && simPnl >= 0 ? 'bg-emerald-500/10 text-emerald-400' : simPnl !== null ? 'bg-red-500/10 text-red-400' : 'bg-zinc-800 text-zinc-500'}`}>
+          <div className={`rounded-xl px-3 py-2 text-xs ${simPnl !== null && simPnl >= 0 ? 'bg-emerald-50 text-emerald-600' : simPnl !== null ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-zinc-500 font-semibold">模拟持仓</span>
+              <span className="font-semibold">模拟持仓</span>
               <span className="font-mono font-bold">
                 {simPnl !== null ? `${simPnl >= 0 ? '+' : ''}¥${fmt(simPnl)}` : '计算中...'}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-zinc-600">¥{fmt(item.simAmount)} 买入</span>
+              <span className="text-slate-500">¥{fmt(item.simAmount)} 买入</span>
               {simPnlPct !== null && (
                 <span className="font-mono text-[10px] font-bold">
                   {simPnlPct >= 0 ? '+' : ''}{simPnlPct.toFixed(2)}%
@@ -106,7 +106,7 @@ const WatchCard: React.FC<{ item: WatchlistItem; onRemove: () => void }> = ({ it
               )}
             </div>
             {item.simShares && (
-              <p className="text-zinc-600 text-[10px] mt-0.5">{fmt(item.simShares)} 份 · 成本 {item.simPrice?.toFixed(4)}</p>
+              <p className="text-slate-400 text-[10px] mt-0.5">{fmt(item.simShares)} 份 · 成本 {item.simPrice?.toFixed(4)}</p>
             )}
           </div>
         )}
@@ -132,10 +132,10 @@ export const WatchlistPanel: React.FC = () => {
         {/* Section Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Eye size={15} className="text-indigo-400" />
-            <h3 className="text-sm font-black text-zinc-300">自选监控</h3>
+            <Eye size={15} className="text-indigo-500" />
+            <h3 className="text-sm font-black text-slate-700">自选监控</h3>
             {items.length > 0 && (
-              <span className="text-[10px] font-bold bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded-full">
                 {items.length}
               </span>
             )}
@@ -145,14 +145,14 @@ export const WatchlistPanel: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-all"
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
               >
                 <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
               </button>
             )}
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-400 text-xs font-bold transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 text-xs font-bold transition-all"
             >
               <Plus size={13} />
               添加
@@ -164,23 +164,23 @@ export const WatchlistPanel: React.FC = () => {
         {isLoading ? (
           <div className="flex gap-3 overflow-hidden">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-52 h-36 rounded-2xl bg-zinc-800 animate-pulse" />
+              <div key={i} className="flex-shrink-0 w-52 h-36 rounded-2xl bg-slate-200 animate-pulse" />
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-zinc-700 p-6 text-center">
-            <BarChart2 size={28} className="mx-auto text-zinc-700 mb-2" />
-            <p className="text-sm text-zinc-600 font-semibold">暂无监控基金</p>
-            <p className="text-xs text-zinc-700 mt-1">添加基金代码，实时追踪净值与模拟盈亏</p>
+          <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+            <BarChart2 size={28} className="mx-auto text-slate-300 mb-2" />
+            <p className="text-sm text-slate-500 font-semibold">暂无监控基金</p>
+            <p className="text-xs text-slate-400 mt-1">添加基金代码，实时追踪净值与模拟盈亏</p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="mt-3 px-4 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-400 text-xs font-bold transition-all"
+              className="mt-3 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 text-xs font-bold transition-all"
             >
               + 添加第一个基金
             </button>
           </div>
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+          <div className="flex gap-3 overflow-x-auto pb-2">
             {items.map((item) => (
               <WatchCard
                 key={item.id}

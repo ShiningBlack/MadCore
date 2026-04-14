@@ -113,23 +113,23 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
   const selectedConfig = TX_TYPES.find(t => t.type === txType)!;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 rounded-3xl w-full max-w-md shadow-2xl border border-zinc-800 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-xl border border-slate-200 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-zinc-800 flex justify-between items-center">
+        <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-black text-white">记录交易</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">{account.name}</p>
+            <h2 className="text-lg font-black text-slate-900">记录交易</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{account.name}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors">
-            <X size={18} className="text-zinc-400" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+            <X size={18} className="text-slate-400" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Transaction Type */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">交易类型</label>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">交易类型</label>
             <div className="flex flex-wrap gap-2">
               {available.map(({ type, label, icon: Icon, color }) => (
                 <button
@@ -138,8 +138,8 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
                   onClick={() => setTxType(type)}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all text-sm font-semibold ${
                     txType === type
-                      ? 'border-indigo-500 bg-indigo-500/15 text-white'
-                      : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
+                      ? 'border-indigo-500 bg-indigo-50 text-slate-900'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
                   }`}
                 >
                   <Icon size={14} className={txType === type ? color : ''} />
@@ -151,28 +151,28 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
 
           {/* Fund Buy: T+N notice */}
           {isFundBuy && (
-            <div className="rounded-2xl bg-violet-500/10 border border-violet-500/30 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <div className="rounded-2xl bg-violet-50 border border-violet-200 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
               <div className="flex items-start gap-3">
-                <Info size={16} className="text-violet-400 mt-0.5 shrink-0" />
-                <div className="text-xs text-violet-300 leading-relaxed">
-                  <span className="font-bold">T+{settlementDays} 制度</span>：申购金额提交后，份额将于 <span className="font-bold text-white">T+{settlementDays} 日收盘后</span>按当日净值确认。届时在交易记录中手动确认份额即可。
+                <Info size={16} className="text-violet-500 mt-0.5 shrink-0" />
+                <div className="text-xs text-violet-700 leading-relaxed">
+                  <span className="font-bold">T+{settlementDays} 制度</span>：申购金额提交后，份额将于 <span className="font-bold text-slate-900">T+{settlementDays} 日收盘后</span>按当日净值确认。届时在交易记录中手动确认份额即可。
                 </div>
               </div>
               {/* Buy Date */}
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">申购日期</label>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">申购日期</label>
                 <input
                   type="date"
                   value={buyDate}
                   max={todayStr()}
                   onChange={e => setBuyDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-800 border border-zinc-700 text-white focus:ring-2 focus:ring-violet-500 outline-none text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:ring-2 focus:ring-violet-500 outline-none text-sm"
                 />
               </div>
               {/* Confirm date preview */}
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <Clock size={12} className="text-violet-400" />
-                预计份额确认日：<span className="text-violet-300 font-mono font-bold">{confirmDate}</span>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Clock size={12} className="text-violet-500" />
+                预计份额确认日：<span className="text-violet-600 font-mono font-bold">{confirmDate}</span>
                 （自动跳过节假日）
               </div>
             </div>
@@ -182,10 +182,10 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
           {isFundSell && (
             <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">赎回净值/成交价</label>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">赎回净值/成交价</label>
                 <input
                   type="number" step="0.0001" placeholder="1.0000"
-                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-rose-500 outline-none font-mono text-sm"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-rose-500 outline-none font-mono text-sm"
                   value={price}
                   onChange={e => {
                     setPrice(e.target.value);
@@ -195,10 +195,10 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">赎回份额/卖出数量</label>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">赎回份额/卖出数量</label>
                 <input
                   type="number" step="0.01" placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-rose-500 outline-none font-mono text-sm"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-rose-500 outline-none font-mono text-sm"
                   value={sharesChange}
                   onChange={e => {
                     setSharesChange(e.target.value);
@@ -212,10 +212,10 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
 
           {/* Amount */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
               {isFundBuy ? '申购金额' : `金额（${account.currency}）`}
               {!isFundBuy && (
-                <span className={`ml-2 normal-case font-bold ${selectedConfig.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`ml-2 normal-case font-bold ${selectedConfig.delta > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {selectedConfig.delta > 0 ? '余额增加' : '余额减少'}
                 </span>
               )}
@@ -224,7 +224,7 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
               required
               type="number" step="0.01" min="0.01"
               placeholder={isFundBuy ? '输入申购金额，份额 T+N 后确认' : '0.00'}
-              className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-xl font-bold"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-xl font-bold"
               value={amount}
               onChange={e => setAmount(e.target.value)}
             />
@@ -232,10 +232,10 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
 
           {/* Note */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">备注（可选）</label>
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">备注（可选）</label>
             <input
               type="text" placeholder="例如：定期定投、补仓..." maxLength={100}
-              className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
               value={note}
               onChange={e => setNote(e.target.value)}
             />
@@ -244,7 +244,7 @@ export const TransactionModal: React.FC<Props> = ({ account, onClose }) => {
           <div className="flex gap-3 pt-1">
             <button
               type="button" onClick={onClose}
-              className="flex-1 py-3.5 rounded-2xl border border-zinc-700 text-zinc-300 font-bold hover:bg-zinc-800 transition-all text-sm"
+              className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all text-sm"
             >
               取消
             </button>

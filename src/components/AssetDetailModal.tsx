@@ -40,9 +40,9 @@ const ReturnBadge: React.FC<{ label: string; value: string }> = ({ label, value 
   const n = parseFloat(value);
   const isPos = n >= 0;
   return (
-    <div className="bg-zinc-800/60 rounded-2xl p-3 text-center border border-zinc-700/50">
-      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1">{label}</p>
-      <p className={`text-base font-black ${isPos ? 'text-rose-400' : 'text-emerald-400'}`}>
+    <div className="bg-slate-100 rounded-2xl p-3 text-center border border-slate-200">
+      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>
+      <p className={`text-base font-black ${isPos ? 'text-rose-500' : 'text-emerald-500'}`}>
         {isNaN(n) ? '—' : fmtPct(value)}
       </p>
     </div>
@@ -54,9 +54,9 @@ const TX_LABEL: Record<string, string> = {
   buy: '买入', sell: '卖出', dividend: '分红',
 };
 const TX_COLOR: Record<string, string> = {
-  income: 'text-emerald-400', expense: 'text-red-400', transfer_in: 'text-sky-400',
-  transfer_out: 'text-orange-400', buy: 'text-violet-400', sell: 'text-rose-400',
-  dividend: 'text-amber-400',
+  income: 'text-emerald-500', expense: 'text-red-500', transfer_in: 'text-sky-500',
+  transfer_out: 'text-orange-500', buy: 'text-violet-500', sell: 'text-rose-500',
+  dividend: 'text-amber-500',
 };
 
 export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
@@ -175,23 +175,23 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="bg-zinc-900 rounded-3xl w-full max-w-2xl shadow-2xl border border-zinc-800 animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-white rounded-3xl w-full max-w-2xl shadow-xl border border-slate-200 animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
 
           {/* ── Header ── */}
-          <div className="px-6 py-5 border-b border-zinc-800 flex justify-between items-center flex-shrink-0">
+          <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isFund ? 'bg-violet-500/15' : 'bg-indigo-500/15'}`}>
-                {isFund ? <TrendingUp size={20} className="text-violet-400" /> : <BarChart2 size={20} className="text-indigo-400" />}
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isFund ? 'bg-violet-100' : 'bg-indigo-100'}`}>
+                {isFund ? <TrendingUp size={20} className="text-violet-600" /> : <BarChart2 size={20} className="text-indigo-600" />}
               </div>
               <div>
-                <h2 className="text-lg font-black text-white">{account.name}</h2>
+                <h2 className="text-lg font-black text-slate-900">{account.name}</h2>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-bold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
                     {account.type}
                   </span>
                   {account.symbolCode && (
-                    <span className="text-[10px] font-mono text-zinc-500">#{account.symbolCode}</span>
+                    <span className="text-[10px] font-mono text-slate-400">#{account.symbolCode}</span>
                   )}
                 </div>
               </div>
@@ -200,14 +200,14 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
               {isFund && (
               <button
                 onClick={() => { loadRealtime(); loadFundDetail(); }}
-                className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 hover:text-white"
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600"
                 title="刷新数据"
               >
                 <RefreshCw size={16} className={isLoadingDetail ? 'animate-spin' : ''} />
               </button>
             )}
-              <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors">
-                <X size={18} className="text-zinc-400" />
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                <X size={18} className="text-slate-400" />
               </button>
             </div>
           </div>
@@ -217,15 +217,15 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
             {/* ── Balance / Market Value Block ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-zinc-800/40 rounded-3xl p-5 border border-zinc-700/50">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+              <div className="bg-slate-50 rounded-3xl p-5 border border-slate-200">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
                   {isFund ? '当前市值' : '当前余额'}
                 </p>
-                <p className="text-3xl font-black text-white">
+                <p className="text-3xl font-black text-slate-900">
                   {fmtMoney(account.balance, showBalances)}
                 </p>
                 {isFund && shares > 0 && currentNav > 0 && (
-                  <p className="text-xs text-zinc-500 mt-2">
+                  <p className="text-xs text-slate-400 mt-2">
                     {shares.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 份 × {currentNav.toFixed(4)}
                   </p>
                 )}
@@ -233,26 +233,26 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
               {/* Today's estimate — only when intraday gszzl is available (not for QDII) */}
               {isFund && rt && hasEstimate && (
-                <div className={`rounded-3xl p-5 border ${gszzl >= 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">今日估算</p>
-                  <div className={`flex items-center gap-1.5 text-2xl font-black mb-1 ${gszzl >= 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                <div className={`rounded-3xl p-5 border ${gszzl >= 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">今日估算</p>
+                  <div className={`flex items-center gap-1.5 text-2xl font-black mb-1 ${gszzl >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                     {gszzl >= 0 ? <ArrowUpRight size={22} /> : <ArrowDownRight size={22} />}
                     {fmtPct(gszzl)}
                   </div>
-                  <p className={`text-sm font-bold ${todayEstProfit >= 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  <p className={`text-sm font-bold ${todayEstProfit >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                     {todayEstProfit >= 0 ? '+' : ''}{fmtMoney(todayEstProfit, showBalances)}
                   </p>
-                  <p className="text-[10px] text-zinc-500 mt-1">更新于 {rt.gztime}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">更新于 {rt.gztime}</p>
                 </div>
               )}
               {/* QDII / no-estimate fallback: show last NAV without change rate */}
               {isFund && rt && !hasEstimate && currentNav > 0 && (
-                <div className="rounded-3xl p-5 border bg-zinc-800/40 border-zinc-700/50">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">最新净値</p>
-                  <div className="flex items-center gap-1.5 text-2xl font-black mb-1 text-white">
+                <div className="rounded-3xl p-5 border bg-slate-50 border-slate-200">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">最新净値</p>
+                  <div className="flex items-center gap-1.5 text-2xl font-black mb-1 text-slate-900">
                     {currentNav.toFixed(4)}
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-1">净值日期 {rt.jzrq || '—'}（暂无盘中估算）</p>
+                  <p className="text-[10px] text-slate-400 mt-1">净值日期 {rt.jzrq || '—'}（暂无盘中估算）</p>
                 </div>
               )}
             </div>
@@ -260,42 +260,42 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
             {/* ── Fund: NAV Info ── */}
             {isFund && rt && (
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-zinc-800/40 rounded-2xl p-3 border border-zinc-700/50 text-center">
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">上一净值</p>
-                  <p className="text-base font-black text-white">{rt.dwjz}</p>
-                  <p className="text-[10px] text-zinc-600">{rt.jzrq}</p>
+                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">上一净值</p>
+                  <p className="text-base font-black text-slate-900">{rt.dwjz}</p>
+                  <p className="text-[10px] text-slate-400">{rt.jzrq}</p>
                 </div>
-                <div className="bg-zinc-800/40 rounded-2xl p-3 border border-zinc-700/50 text-center">
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">当日估值</p>
-                  <p className="text-base font-black text-white">{rt.gsz}</p>
-                  <p className="text-[10px] text-zinc-600">实时估算</p>
+                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">当日估值</p>
+                  <p className="text-base font-black text-slate-900">{rt.gsz}</p>
+                  <p className="text-[10px] text-slate-400">实时估算</p>
                 </div>
-                <div className="bg-zinc-800/40 rounded-2xl p-3 border border-zinc-700/50 text-center">
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">管理费率</p>
-                  <p className="text-base font-black text-white">{fundDetail?.fund_rate ?? '—'}%</p>
-                  <p className="text-[10px] text-zinc-600">原 {fundDetail?.fund_source_rate ?? '—'}%</p>
+                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">管理费率</p>
+                  <p className="text-base font-black text-slate-900">{fundDetail?.fund_rate ?? '—'}%</p>
+                  <p className="text-[10px] text-slate-400">原 {fundDetail?.fund_source_rate ?? '—'}%</p>
                 </div>
               </div>
             )}
 
             {/* ── Fund: Holding Summary ── */}
             {isFund && shares > 0 && costPrice > 0 && (
-              <div className="bg-zinc-800/40 rounded-3xl p-5 border border-zinc-700/50 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-slate-50 rounded-3xl p-5 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">持有份额</p>
-                  <p className="font-black text-white text-sm">{shares.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">持有份额</p>
+                  <p className="font-black text-slate-900 text-sm">{shares.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">成本净值</p>
-                  <p className="font-black text-white text-sm">{costPrice.toFixed(4)}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">成本净值</p>
+                  <p className="font-black text-slate-900 text-sm">{costPrice.toFixed(4)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">持仓成本</p>
-                  <p className="font-black text-white text-sm">{fmtMoney(costValue, showBalances)}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">持仓成本</p>
+                  <p className="font-black text-slate-900 text-sm">{fmtMoney(costValue, showBalances)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">浮动盈亏</p>
-                  <p className={`font-black text-sm ${unrealizedPnL >= 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">浮动盈亏</p>
+                  <p className={`font-black text-sm ${unrealizedPnL >= 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                     {unrealizedPnL >= 0 ? '+' : ''}{fmtMoney(unrealizedPnL, showBalances)}
                     <span className="text-xs font-bold ml-1">({fmtPct(unrealizedPct)})</span>
                   </p>
@@ -306,7 +306,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
             {/* ── Fund: Returns Grid ── */}
             {isFund && fundDetail && (
               <div>
-                <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                   <Award size={12} /> 阶段收益率
                 </h4>
                 <div className="grid grid-cols-4 gap-2">
@@ -322,7 +322,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
             {isFund && (
               <div>
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                     <TrendingUp size={12} /> 历史净值走势
                   </h4>
                   <div className="flex gap-1">
@@ -330,7 +330,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                       <button
                         key={p.days}
                         onClick={() => setPeriod(p.days)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${period === p.days ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${period === p.days ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                           }`}
                       >
                         {p.label}
@@ -339,7 +339,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                   </div>
                 </div>
 
-                <div className="h-52 w-full bg-zinc-800/30 rounded-3xl p-4 border border-zinc-800">
+                <div className="h-52 w-full bg-slate-50 rounded-3xl p-4 border border-slate-200">
                   {isLoadingDetail ? (
                     <div className="h-full flex items-center justify-center">
                       <Loader2 size={24} className="animate-spin text-indigo-500" />
@@ -353,12 +353,12 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                             <stop offset="95%" stopColor={trendUp ? '#f43f5e' : '#10b981'} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <XAxis
                           dataKey="date"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fontSize: 9, fill: '#52525b' }}
+                          tick={{ fontSize: 9, fill: '#94a3b8' }}
                           minTickGap={30}
                         />
                         <YAxis
@@ -368,12 +368,12 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                         <Tooltip
                           contentStyle={{
                             borderRadius: '12px', border: 'none',
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-                            backgroundColor: '#18181b', color: '#fff',
+                            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                            backgroundColor: '#fff', color: '#1e293b',
                             fontSize: 12,
                           }}
                           formatter={(v: any) => [typeof v === 'number' ? v.toFixed(4) : v, '净值']}
-                          labelStyle={{ color: '#71717a', marginBottom: 4 }}
+                          labelStyle={{ color: '#64748b', marginBottom: 4 }}
                         />
                         <Area
                           type="monotone"
@@ -387,7 +387,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-zinc-600 text-xs font-bold uppercase tracking-widest">
+                    <div className="h-full flex items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-widest">
                       {isLoadingDetail ? '' : '暂无净值数据'}
                     </div>
                   )}
@@ -398,18 +398,18 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
             {/* ── Fund: Performance Radar ── */}
             {isFund && perfData.length > 0 && (
               <div>
-                <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                   <BarChart2 size={12} /> 综合评分 {fundDetail?.performance?.avr && (
-                    <span className="text-indigo-400 font-black">{fundDetail.performance.avr}</span>
+                    <span className="text-indigo-500 font-black">{fundDetail.performance.avr}</span>
                   )}
                 </h4>
-                <div className="h-56 bg-zinc-800/30 rounded-3xl border border-zinc-800 p-2">
+                <div className="h-56 bg-slate-50 rounded-3xl border border-slate-200 p-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={perfData}>
-                      <PolarGrid stroke="#27272a" />
+                      <PolarGrid stroke="#e2e8f0" />
                       <PolarAngleAxis
                         dataKey="subject"
-                        tick={{ fontSize: 10, fill: '#71717a' }}
+                        tick={{ fontSize: 10, fill: '#64748b' }}
                       />
                       <Radar
                         name="评分"
@@ -428,19 +428,19 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
             {/* ── Fund: Manager ── */}
             {isFund && fundDetail?.managers && fundDetail.managers.length > 0 && (
               <div>
-                <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                   <Users size={12} /> 基金经理
                 </h4>
                 <div className="space-y-2">
                   {fundDetail.managers.map(mgr => (
-                    <div key={mgr.id} className="flex items-center justify-between bg-zinc-800/40 rounded-2xl p-4 border border-zinc-700/50">
+                    <div key={mgr.id} className="flex items-center justify-between bg-slate-50 rounded-2xl p-4 border border-slate-200">
                       <div>
-                        <p className="font-bold text-white text-sm">{mgr.name}</p>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">任职 {mgr.work_time}</p>
+                        <p className="font-bold text-slate-900 text-sm">{mgr.name}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">任职 {mgr.work_time}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] text-zinc-500">管理规模</p>
-                        <p className="text-xs font-bold text-zinc-300">{mgr.fund_size}</p>
+                        <p className="text-[10px] text-slate-400">管理规模</p>
+                        <p className="text-xs font-bold text-slate-600">{mgr.fund_size}</p>
                       </div>
                     </div>
                   ))}
@@ -450,19 +450,19 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
             <div>
               <div className="flex justify-between items-center mb-3">
-                <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Clock size={12} /> 交易记录
                 </h4>
                 <button
                   onClick={() => setShowTxModal(true)}
-                  className="flex items-center gap-1.5 text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider"
+                  className="flex items-center gap-1.5 text-[10px] font-black text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-wider"
                 >
                   <PlusCircle size={13} /> 记录交易
                 </button>
               </div>
 
               {transactions.filter(t => t.assetId === account.id).length === 0 ? (
-                <div className="py-8 text-center text-zinc-600 text-xs font-bold uppercase tracking-widest border border-dashed border-zinc-800 rounded-2xl">
+                <div className="py-8 text-center text-slate-400 text-xs font-bold uppercase tracking-widest border border-dashed border-slate-300 rounded-2xl">
                   暂无交易记录
                 </div>
               ) : (
@@ -472,12 +472,12 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                     const isConfirmTarget = confirmingTxId === tx.id;
                     return (
                       <div key={tx.id} className={`rounded-2xl px-4 py-3 border transition-all ${isPending
-                        ? 'bg-amber-500/5 border-amber-500/30'
-                        : 'bg-zinc-800/40 border-zinc-700/40'
+                        ? 'bg-amber-50 border-amber-200'
+                        : 'bg-slate-50 border-slate-200'
                         }`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-zinc-800 ${TX_COLOR[tx.type]}`}>
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-white ${TX_COLOR[tx.type]}`}>
                               {['income', 'transfer_in', 'buy', 'dividend'].includes(tx.type)
                                 ? <Plus size={13} /> : <Minus size={13} />}
                             </div>
@@ -485,12 +485,12 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                               <div className="flex items-center gap-2">
                                 <p className={`text-xs font-bold ${TX_COLOR[tx.type]}`}>{TX_LABEL[tx.type] || tx.type}</p>
                                 {isPending && (
-                                  <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">
+                                  <span className="text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">
                                     待确认
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-zinc-600">
+                              <p className="text-[10px] text-slate-400">
                                 {isPending && tx.confirmDate
                                   ? `预计 ${tx.confirmDate} 确认份额`
                                   : tx.note || new Date(tx.timestamp).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -508,7 +508,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                                   setConfirmingTxId(isConfirmTarget ? null : tx.id);
                                   setConfirmNav(tx.price?.toString() ?? '');
                                 }}
-                                className="text-[10px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-lg transition-all"
+                                className="text-[10px] font-black text-amber-500 hover:text-amber-600 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-lg transition-all"
                               >
                                 {isConfirmTarget ? '取消' : '确认份额'}
                               </button>
@@ -518,24 +518,24 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
                         {/* Inline confirmation form */}
                         {isConfirmTarget && (
-                          <div className="mt-3 pt-3 border-t border-amber-500/20 flex gap-2 items-end animate-in slide-in-from-top-1 duration-150">
+                          <div className="mt-3 pt-3 border-t border-amber-200 flex gap-2 items-end animate-in slide-in-from-top-1 duration-150">
                             <div className="flex-1">
-                              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
                                 确认当日单位净値/成交均价
                               </label>
                               <input
                                 type="number"
                                 step="0.0001"
                                 placeholder="输入确认价格"
-                                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-amber-500/30 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 outline-none font-mono text-sm"
+                                className="w-full px-3 py-2 rounded-xl bg-white border border-amber-300 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-amber-400 outline-none font-mono text-sm"
                                 value={confirmNav}
                                 onChange={e => setConfirmNav(e.target.value)}
                                 autoFocus
                               />
                               {confirmNav && !isNaN(parseFloat(confirmNav)) && (
-                                <p className="text-[10px] text-zinc-500 mt-1">
+                                <p className="text-[10px] text-slate-500 mt-1">
                                   份额 = ¥{tx.amount.toFixed(2)} &divide; {parseFloat(confirmNav).toFixed(4)} =
-                                  <span className="text-amber-400 font-mono font-bold">
+                                  <span className="text-amber-600 font-mono font-bold">
                                     {(tx.amount / parseFloat(confirmNav)).toFixed(2)} 份
                                   </span>
                                 </p>
@@ -551,7 +551,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                                 setConfirmNav('');
                                 setIsConfirming(false);
                               }}
-                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-900 font-black text-xs transition-all disabled:opacity-40 flex items-center gap-1"
+                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-black text-xs transition-all disabled:opacity-40 flex items-center gap-1"
                             >
                               {isConfirming ? <Loader2 size={13} className="animate-spin" /> : '写入确认'}
                             </button>
@@ -566,14 +566,14 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
             {/* ── Account Info ── */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-zinc-800/40 rounded-2xl p-3 border border-zinc-700/40">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1"><Hash size={10} /> 货币</p>
-                <p className="text-sm font-bold text-white">{account.currency}</p>
+              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1"><Hash size={10} /> 货币</p>
+                <p className="text-sm font-bold text-slate-900">{account.currency}</p>
               </div>
               {account.accountNumber && (
-                <div className="bg-zinc-800/40 rounded-2xl p-3 border border-zinc-700/40">
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">卡号尾号</p>
-                  <p className="text-sm font-bold text-white font-mono">****{account.accountNumber}</p>
+                <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">卡号尾号</p>
+                  <p className="text-sm font-bold text-slate-900 font-mono">****{account.accountNumber}</p>
                 </div>
               )}
             </div>
@@ -581,7 +581,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
             {/* ── Delete ── */}
             <button
               onClick={handleDelete}
-              className="w-full flex items-center justify-center gap-2 py-3.5 text-red-500 hover:bg-red-500/10 rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-transparent hover:border-red-500/20"
+              className="w-full flex items-center justify-center gap-2 py-3.5 text-red-500 hover:bg-red-50 rounded-2xl transition-all font-black text-xs uppercase tracking-widest border border-transparent hover:border-red-200"
             >
               <Trash2 size={14} /> 删除此账户
             </button>

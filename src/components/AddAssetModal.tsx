@@ -103,13 +103,13 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const isInvest = selectedType === 'fund' || selectedType === 'stock';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 rounded-3xl w-full max-w-md shadow-2xl border border-zinc-800 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-xl border border-slate-200 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-zinc-800 flex justify-between items-center">
-          <h2 className="text-lg font-black text-white">新增资产</h2>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors">
-            <X size={18} className="text-zinc-400" />
+        <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center">
+          <h2 className="text-lg font-black text-slate-900">新增资产</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+            <X size={18} className="text-slate-400" />
           </button>
         </div>
 
@@ -122,12 +122,12 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 type="button"
                 onClick={() => { setSelectedType(type); setName(''); }}
                 className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-1.5 ${selectedType === type
-                  ? 'border-indigo-500 bg-indigo-500/10'
-                  : 'border-zinc-800 bg-zinc-800/50 hover:border-zinc-700'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-slate-200 bg-slate-50 hover:border-slate-300'
                   }`}
               >
-                <Icon size={20} className={selectedType === type ? color : 'text-zinc-500'} />
-                <span className={`text-[10px] font-bold ${selectedType === type ? 'text-white' : 'text-zinc-500'}`}>{label}</span>
+                <Icon size={20} className={selectedType === type ? color : 'text-slate-400'} />
+                <span className={`text-[10px] font-bold ${selectedType === type ? 'text-indigo-600' : 'text-slate-500'}`}>{label}</span>
               </button>
             ))}
           </div>
@@ -135,18 +135,18 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* Fund/Stock Code */}
           {isInvest && (
             <div className="animate-in slide-in-from-top-2 duration-200">
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '基金代码' : '股票代码'}</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '基金代码' : '股票代码'}</label>
               <div className="relative">
-                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
                   required
                   type="text"
                   placeholder={selectedType === 'fund' ? "6位基金代码，如 016185" : "股票代码，如 sh600519"}
-                  className="w-full pl-11 pr-12 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                  className="w-full pl-11 pr-12 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                   value={fundCode}
                   onChange={e => handleFundCodeChange(e.target.value)}
                 />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-violet-400">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-violet-500">
                   {isFetchingFund ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 </div>
               </div>
@@ -155,14 +155,14 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           {/* Name */}
           <div>
-            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
               {isInvest ? (selectedType === 'fund' ? '基金名称' : '股票名称') : selectedType === 'bank' ? '银行/卡名称' : '账户名称'}
             </label>
             <input
               required
               type="text"
               placeholder="..."
-              className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
               value={name}
               onChange={e => setName(e.target.value)}
             />
@@ -171,12 +171,12 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* Bank account number */}
           {selectedType === 'bank' && (
             <div>
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">卡号末四位</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">卡号末四位</label>
               <input
                 type="text"
                 maxLength={4}
                 placeholder="8888"
-                className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                 value={accountNumber}
                 onChange={e => setAccountNumber(e.target.value)}
               />
@@ -187,23 +187,23 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {isInvest && (
             <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '持有份额' : '持股数量'}</label>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '持有份额' : '持股数量'}</label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                   value={shares}
                   onChange={e => setShares(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '成本净值' : '持仓成本价'}</label>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{selectedType === 'fund' ? '成本净值' : '持仓成本价'}</label>
                 <input
                   type="number"
                   step="0.0001"
                   placeholder="1.0000"
-                  className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                   value={costPrice}
                   onChange={e => setCostPrice(e.target.value)}
                 />
@@ -214,7 +214,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* Settlement Days: T+1 or T+2 */}
           {isInvest && (
             <div className="animate-in slide-in-from-top-1 duration-150">
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
                 份额确认周期
               </label>
               <div className="flex gap-2">
@@ -224,8 +224,8 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     type="button"
                     onClick={() => setSettlementDays(d)}
                     className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all ${settlementDays === d
-                      ? 'border-violet-500 bg-violet-500/15 text-violet-300'
-                      : 'border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-zinc-600'
+                      ? 'border-violet-500 bg-violet-50 text-violet-700'
+                      : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
                       }`}
                   >
                     T+{d}
@@ -240,7 +240,7 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {/* Balance + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
                 {isInvest ? '当前市值（自动计算）' : '余额'}
               </label>
               <input
@@ -248,15 +248,15 @@ export const AddAssetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
+                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-sm"
                 value={balance}
                 onChange={e => setBalance(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">货币</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">货币</label>
               <select
-                className="w-full px-4 py-3 rounded-2xl bg-zinc-800 border border-zinc-700 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                 value={currency}
                 onChange={e => setCurrency(e.target.value)}
               >

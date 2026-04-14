@@ -18,12 +18,12 @@ export const AssetList: React.FC<AssetListProps> = ({ title, accounts, onAccount
   return (
     <div className="mb-8">
       <div className="flex justify-between items-end mb-4 px-1">
-        <h3 className="text-lg font-black text-gray-800 dark:text-gray-200 uppercase tracking-tight">
+        <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
           {title}
         </h3>
-        <span className="text-sm font-bold text-gray-400 dark:text-zinc-600">
-          {showBalances 
-            ? `¥${total.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}` 
+        <span className="text-sm font-bold text-slate-400">
+          {showBalances
+            ? `¥${total.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
             : '******'}
         </span>
       </div>

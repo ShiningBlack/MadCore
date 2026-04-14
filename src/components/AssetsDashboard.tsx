@@ -99,11 +99,11 @@ export const AssetsDashboard: React.FC = () => {
   }, [todayPnL, totalNetWorth]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 w-full text-white">
+    <div className="min-h-screen bg-slate-100 w-full text-slate-900">
       {/* Error toast */}
       {error && (
         <div className="fixed top-4 right-4 z-[100] animate-in slide-in-from-top-4 duration-300">
-          <div className="bg-red-500 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+          <div className="bg-red-500 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-white/20">
             <AlertCircle size={18} />
             <span className="text-sm font-bold">{error}</span>
             <button onClick={clearError} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
@@ -119,19 +119,19 @@ export const AssetsDashboard: React.FC = () => {
         <header className="flex items-center justify-between gap-4 mb-10">
           <div className="flex items-center gap-4">
             {user?.avatar ? (
-              <img src={user.avatar} alt="Avatar" className="w-12 h-12 rounded-2xl border border-zinc-800 bg-zinc-800" />
+              <img src={user.avatar} alt="Avatar" className="w-12 h-12 rounded-2xl border border-slate-200 bg-slate-100" />
             ) : (
               <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center">
-                <LayoutDashboard size={24} />
+                <LayoutDashboard size={24} className="text-white" />
               </div>
             )}
             <div>
-              <h1 className="text-xl font-black tracking-tight text-white">
+              <h1 className="text-xl font-black tracking-tight text-slate-900">
                 你好，{user?.username} 👋
               </h1>
-              <p className="text-xs text-zinc-500 font-medium">
+              <p className="text-xs text-slate-500 font-medium">
                 {investmentAssets.length > 0 && todayPnL !== 0 && (
-                  <span className={todayPnL >= 0 ? 'text-rose-400' : 'text-emerald-400'}>
+                  <span className={todayPnL >= 0 ? 'text-rose-500' : 'text-emerald-500'}>
                     今日浮动 {todayPnL >= 0 ? '+' : ''}
                     {showBalances ? `${todayPnL.toFixed(2)} (${todayPnLPct.toFixed(2)}%)` : '***'} ·{' '}
                   </span>
@@ -144,7 +144,7 @@ export const AssetsDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => updateValuations()}
-              className="p-2.5 bg-zinc-900 text-indigo-400 hover:bg-zinc-800 rounded-xl border border-zinc-800 transition-all"
+              className="p-2.5 bg-white text-indigo-600 hover:bg-slate-50 rounded-xl border border-slate-200 transition-all shadow-sm"
               title="刷新估值"
             >
               <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -157,7 +157,7 @@ export const AssetsDashboard: React.FC = () => {
             </button>
             <button
               onClick={handleLogout}
-              className="p-2.5 bg-zinc-900 text-zinc-500 hover:text-red-400 rounded-xl border border-zinc-800 transition-all"
+              className="p-2.5 bg-white text-slate-500 hover:text-red-500 rounded-xl border border-slate-200 transition-all shadow-sm"
               title="退出登录"
             >
               <LogOut size={18} />
@@ -180,7 +180,7 @@ export const AssetsDashboard: React.FC = () => {
 
         {/* ── Asset Lists ── */}
         {isLoading && accounts.length === 0 ? (
-          <div className="flex flex-col justify-center items-center py-24 text-zinc-600">
+          <div className="flex flex-col justify-center items-center py-24 text-slate-400">
             <Loader2 size={36} className="animate-spin text-indigo-500 mb-4" />
             <p className="font-bold uppercase tracking-widest text-xs">加载资产数据...</p>
           </div>

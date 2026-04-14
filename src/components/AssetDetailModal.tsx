@@ -8,10 +8,10 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar
 } from 'recharts';
-import { AssetAccount, FundDetailFull } from '../types/asset';
+import { AssetAccount, FundDetailFull, FundRealtime } from '../types/asset';
 import { useAssetStore } from '../store/useAssetStore';
 import { useUserStore } from '../store/useUserStore';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../lib/api';
 import { TransactionModal } from './TransactionModal';
 
 interface Props {
@@ -51,12 +51,12 @@ const ReturnBadge: React.FC<{ label: string; value: string }> = ({ label, value 
 
 const TX_LABEL: Record<string, string> = {
   income: '收入', expense: '支出', transfer_in: '转入', transfer_out: '转出',
-  fund_buy: '买入', fund_sell: '卖出', fund_dividend: '分红',
+  buy: '买入', sell: '卖出', dividend: '分红',
 };
 const TX_COLOR: Record<string, string> = {
   income: 'text-emerald-400', expense: 'text-red-400', transfer_in: 'text-sky-400',
-  transfer_out: 'text-orange-400', fund_buy: 'text-violet-400', fund_sell: 'text-rose-400',
-  fund_dividend: 'text-amber-400',
+  transfer_out: 'text-orange-400', buy: 'text-violet-400', sell: 'text-rose-400',
+  dividend: 'text-amber-400',
 };
 
 export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
@@ -65,6 +65,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
   const [fundDetail, setFundDetail] = useState<FundDetailFull | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [localRealtime, setLocalRealtime] = useState<FundRealtime | null>(null);
   const [period, setPeriod] = useState(90);
   const [showTxModal, setShowTxModal] = useState(false);
   const [confirmingTxId, setConfirmingTxId] = useState<number | null>(null);
@@ -73,25 +74,49 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
   const isFund = account?.type === 'fund';
 
-  // Fetch full fund detail
+  // Fetch NAV history, stage returns, manager info
   const loadFundDetail = useCallback(async () => {
-    if (!account?.fundCode) return;
+    if (!account?.symbolCode) return;
     setIsLoadingDetail(true);
     try {
-      const d: FundDetailFull = await invoke('fetch_fund_detail_full', { code: account.fundCode });
+      const d = await api<FundDetailFull>(`/api/finance/fund/detail/${account.symbolCode}`);
       setFundDetail(d);
     } catch (e) {
       console.error('fetchFundDetail failed', e);
     } finally {
       setIsLoadingDetail(false);
     }
-  }, [account?.fundCode]);
+  }, [account?.symbolCode]);
+
+  // Fetch realtime separately — ensures profit/loss is always fresh
+  const loadRealtime = useCallback(async () => {
+    if (!account?.symbolCode || account.type !== 'fund') return;
+    try {
+      const data = await api<any>(`/api/finance/fund/realtime/${account.symbolCode}`);
+      const rt = Array.isArray(data) ? data[0] : data;
+      if (rt) setLocalRealtime(rt);
+    } catch (e) {
+      console.error('fetchRealtime failed', e);
+    }
+  }, [account?.symbolCode]);
 
   useEffect(() => {
-    if (account) {
-      fetchTransactions(account.id);
-      if (isFund) loadFundDetail();
-      else setFundDetail(null);
+    if (!account) return;
+
+    setLocalRealtime(null);
+    setFundDetail(null);
+    fetchTransactions();
+
+    if (isFund) {
+      loadRealtime();
+      loadFundDetail();
+
+      // Poll real-time data every 1 minute
+      const intervalId = setInterval(() => {
+        loadRealtime();
+      }, 60000);
+
+      return () => clearInterval(intervalId);
     }
   }, [account?.id]);
 
@@ -99,22 +124,30 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
 
   const handleDelete = async () => {
     if (!user || !window.confirm(`确认删除「${account.name}」？此操作不可撤销。`)) return;
-    await deleteAccount(account.id, user.id, user.username);
+    await deleteAccount(account.id);
     onClose();
   };
 
   // --- Fund Valuation Computations ---
-  const rt = account.realtime;
-  const gszzl = rt ? parseFloat(rt.gszzl) : NaN;
-  const gsz = rt ? parseFloat(rt.gsz) : NaN;
-  const dwjz = rt ? parseFloat(rt.dwjz) : NaN;
+  // Prefer locally-fetched realtime (always fresh); fall back to store cached value
+  const rt = (localRealtime ?? account.realtime) as FundRealtime | undefined;
+  // Use isFinite to reject NaN (empty gszzl for QDII) and Infinity
+  const gszzlRaw = rt ? parseFloat(rt.gszzl ?? '') : NaN;
+  const gszRaw   = rt ? parseFloat(rt.gsz   ?? '') : NaN;
+  const dwjzRaw  = rt ? parseFloat(rt.dwjz  ?? '') : NaN;
+  const gszzl = isFinite(gszzlRaw) ? gszzlRaw : NaN;   // NaN = no intraday estimate
+  const gsz   = isFinite(gszRaw)   ? gszRaw   : NaN;
+  const dwjz  = isFinite(dwjzRaw)  ? dwjzRaw  : NaN;
+  const hasEstimate = !isNaN(gszzl);                    // false for QDII
+  // Best known current price: intraday estimate → last NAV
+  const currentNav = !isNaN(gsz) ? gsz : (!isNaN(dwjz) ? dwjz : 0);
   const shares = account.shares ?? 0;
   const costPrice = account.costPrice ?? 0;
   const costValue = shares * costPrice;
   const marketValue = account.balance;
   const unrealizedPnL = marketValue - costValue;
   const unrealizedPct = costValue > 0 ? (unrealizedPnL / costValue) * 100 : 0;
-  const todayEstProfit = !isNaN(gszzl) ? (shares * (isNaN(gsz) ? 0 : gsz) * gszzl) / 100 : 0;
+  const todayEstProfit = hasEstimate && currentNav > 0 ? (shares * currentNav * gszzl) / 100 : 0;
 
   // --- Chart Data ---
   const now = Date.now();
@@ -131,9 +164,9 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
   // --- Radar Chart ---
   const perfData = fundDetail?.performance
     ? fundDetail.performance.categories.map((cat, i) => ({
-        subject: cat,
-        score: fundDetail.performance!.data[i],
-      }))
+      subject: cat,
+      score: fundDetail.performance!.data[i],
+    }))
     : [];
 
   const trendUp = chartData.length >= 2
@@ -157,22 +190,22 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                   <span className="text-[10px] font-bold bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full uppercase tracking-widest">
                     {account.type}
                   </span>
-                  {account.fundCode && (
-                    <span className="text-[10px] font-mono text-zinc-500">#{account.fundCode}</span>
+                  {account.symbolCode && (
+                    <span className="text-[10px] font-mono text-zinc-500">#{account.symbolCode}</span>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {isFund && (
-                <button
-                  onClick={loadFundDetail}
-                  className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 hover:text-white"
-                  title="刷新数据"
-                >
-                  <RefreshCw size={16} className={isLoadingDetail ? 'animate-spin' : ''} />
-                </button>
-              )}
+              <button
+                onClick={() => { loadRealtime(); loadFundDetail(); }}
+                className="p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 hover:text-white"
+                title="刷新数据"
+              >
+                <RefreshCw size={16} className={isLoadingDetail ? 'animate-spin' : ''} />
+              </button>
+            )}
               <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-xl transition-colors">
                 <X size={18} className="text-zinc-400" />
               </button>
@@ -191,14 +224,15 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                 <p className="text-3xl font-black text-white">
                   {fmtMoney(account.balance, showBalances)}
                 </p>
-                {isFund && shares > 0 && (
+                {isFund && shares > 0 && currentNav > 0 && (
                   <p className="text-xs text-zinc-500 mt-2">
-                    {shares.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 份 × {isNaN(gsz) ? dwjz.toFixed(4) : gsz.toFixed(4)}
+                    {shares.toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 份 × {currentNav.toFixed(4)}
                   </p>
                 )}
               </div>
 
-              {isFund && rt && (
+              {/* Today's estimate — only when intraday gszzl is available (not for QDII) */}
+              {isFund && rt && hasEstimate && (
                 <div className={`rounded-3xl p-5 border ${gszzl >= 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">今日估算</p>
                   <div className={`flex items-center gap-1.5 text-2xl font-black mb-1 ${gszzl >= 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
@@ -209,6 +243,16 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                     {todayEstProfit >= 0 ? '+' : ''}{fmtMoney(todayEstProfit, showBalances)}
                   </p>
                   <p className="text-[10px] text-zinc-500 mt-1">更新于 {rt.gztime}</p>
+                </div>
+              )}
+              {/* QDII / no-estimate fallback: show last NAV without change rate */}
+              {isFund && rt && !hasEstimate && currentNav > 0 && (
+                <div className="rounded-3xl p-5 border bg-zinc-800/40 border-zinc-700/50">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">最新净値</p>
+                  <div className="flex items-center gap-1.5 text-2xl font-black mb-1 text-white">
+                    {currentNav.toFixed(4)}
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">净值日期 {rt.jzrq || '—'}（暂无盘中估算）</p>
                 </div>
               )}
             </div>
@@ -286,9 +330,8 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                       <button
                         key={p.days}
                         onClick={() => setPeriod(p.days)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                          period === p.days ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
-                        }`}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${period === p.days ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                          }`}
                       >
                         {p.label}
                       </button>
@@ -306,7 +349,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                       <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%"  stopColor={trendUp ? '#f43f5e' : '#10b981'} stopOpacity={0.25} />
+                            <stop offset="5%" stopColor={trendUp ? '#f43f5e' : '#10b981'} stopOpacity={0.25} />
                             <stop offset="95%" stopColor={trendUp ? '#f43f5e' : '#10b981'} stopOpacity={0} />
                           </linearGradient>
                         </defs>
@@ -428,15 +471,14 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                     const isPending = tx.status === 'pending';
                     const isConfirmTarget = confirmingTxId === tx.id;
                     return (
-                      <div key={tx.id} className={`rounded-2xl px-4 py-3 border transition-all ${
-                        isPending
-                          ? 'bg-amber-500/5 border-amber-500/30'
-                          : 'bg-zinc-800/40 border-zinc-700/40'
-                      }`}>
+                      <div key={tx.id} className={`rounded-2xl px-4 py-3 border transition-all ${isPending
+                        ? 'bg-amber-500/5 border-amber-500/30'
+                        : 'bg-zinc-800/40 border-zinc-700/40'
+                        }`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-zinc-800 ${TX_COLOR[tx.type]}`}>
-                              {['income','transfer_in','fund_buy','fund_dividend'].includes(tx.type)
+                              {['income', 'transfer_in', 'buy', 'dividend'].includes(tx.type)
                                 ? <Plus size={13} /> : <Minus size={13} />}
                             </div>
                             <div>
@@ -451,20 +493,20 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                               <p className="text-[10px] text-zinc-600">
                                 {isPending && tx.confirmDate
                                   ? `预计 ${tx.confirmDate} 确认份额`
-                                  : tx.note || new Date(tx.timestamp).toLocaleString('zh-CN', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' })}
+                                  : tx.note || new Date(tx.timestamp).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <p className={`text-sm font-black ${TX_COLOR[tx.type]}`}>
-                              {['income','transfer_in','fund_buy','fund_dividend'].includes(tx.type) ? '+' : '-'}
+                              {['income', 'transfer_in', 'buy', 'dividend'].includes(tx.type) ? '+' : '-'}
                               {Math.abs(tx.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
                             </p>
                             {isPending && (
                               <button
                                 onClick={() => {
                                   setConfirmingTxId(isConfirmTarget ? null : tx.id);
-                                  setConfirmNav(tx.nav?.toString() ?? '');
+                                  setConfirmNav(tx.price?.toString() ?? '');
                                 }}
                                 className="text-[10px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-lg transition-all"
                               >
@@ -479,12 +521,12 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                           <div className="mt-3 pt-3 border-t border-amber-500/20 flex gap-2 items-end animate-in slide-in-from-top-1 duration-150">
                             <div className="flex-1">
                               <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                                确认当日单位净値
+                                确认当日单位净値/成交均价
                               </label>
                               <input
                                 type="number"
                                 step="0.0001"
-                                placeholder="将 T+N 算出的在此输入"
+                                placeholder="输入确认价格"
                                 className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-amber-500/30 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 outline-none font-mono text-sm"
                                 value={confirmNav}
                                 onChange={e => setConfirmNav(e.target.value)}
@@ -492,7 +534,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                               />
                               {confirmNav && !isNaN(parseFloat(confirmNav)) && (
                                 <p className="text-[10px] text-zinc-500 mt-1">
-                                  份额 = ¥{tx.amount.toFixed(2)} &divide; {parseFloat(confirmNav).toFixed(4)} = 
+                                  份额 = ¥{tx.amount.toFixed(2)} &divide; {parseFloat(confirmNav).toFixed(4)} =
                                   <span className="text-amber-400 font-mono font-bold">
                                     {(tx.amount / parseFloat(confirmNav)).toFixed(2)} 份
                                   </span>
@@ -504,7 +546,7 @@ export const AssetDetailModal: React.FC<Props> = ({ account, onClose }) => {
                               onClick={async () => {
                                 if (!user) return;
                                 setIsConfirming(true);
-                                await confirmPendingTransaction(tx.id, account.id, user.id, user.username, parseFloat(confirmNav));
+                                await confirmPendingTransaction(tx.id, parseFloat(confirmNav));
                                 setConfirmingTxId(null);
                                 setConfirmNav('');
                                 setIsConfirming(false);

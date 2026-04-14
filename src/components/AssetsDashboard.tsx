@@ -33,8 +33,16 @@ export const AssetsDashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      fetchAccounts(user.id, user.username);
-      fetchWatchlist(user.id);
+      fetchAccounts();
+      fetchWatchlist();
+
+      // Poll real-time valuations every 1 minute
+      const intervalId = setInterval(() => {
+        updateValuations();
+        useWatchlistStore.getState().updateWatchlistValuations();
+      }, 60000);
+
+      return () => clearInterval(intervalId);
     }
   }, [user?.id]);
 
@@ -51,26 +59,44 @@ export const AssetsDashboard: React.FC = () => {
     [accounts]
   );
   const investmentAssets = useMemo(
-    () => accounts.filter(a => a.type === 'fund'),
+    () => accounts.filter(a => a.type === 'fund' || a.type === 'stock'),
     [accounts]
   );
 
-  // Today's estimated fund PnL
-  const todayFundPnL = useMemo(() => {
+  // Today's estimated fund/stock PnL
+  const todayPnL = useMemo(() => {
     return accounts
-      .filter(a => a.type === 'fund' && a.realtime && a.shares && a.shares > 0)
+      .filter(a => (a.type === 'fund' || a.type === 'stock') && a.realtime && a.shares && a.shares > 0)
       .reduce((sum, a) => {
-        const gszzl = parseFloat(a.realtime!.gszzl);
-        const gsz = parseFloat(a.realtime!.gsz);
-        if (!isNaN(gszzl) && !isNaN(gsz)) {
-          return sum + (a.shares! * gsz * gszzl) / 100;
+        const rt = a.realtime!;
+        let changeRate = 0;
+        let price = 0;
+
+        if ('gszzl' in rt) {
+          const gszzlRaw = parseFloat(rt.gszzl ?? '');
+          const gszRaw = parseFloat(rt.gsz ?? '');
+          changeRate = isFinite(gszzlRaw) ? gszzlRaw : 0;
+          price = isFinite(gszRaw) ? gszRaw : 0;
+        } else if ('change_rate' in rt || 'change_percent' in rt) {
+          const cr = (rt as any).change_rate ?? (rt as any).change_percent;
+          changeRate = parseFloat(String(cr ?? '0'));
+          price = parseFloat(String((rt as any).price ?? '0'));
+        }
+        
+        if (!isNaN(changeRate) && !isNaN(price)) {
+          return sum + (a.shares! * price * changeRate) / 100;
         }
         return sum;
       }, 0);
   }, [accounts]);
 
-
-
+  // Today's portfolio percentage change
+  const todayPnLPct = useMemo(() => {
+    if (todayPnL === 0) return 0;
+    const baseValue = totalNetWorth - todayPnL;
+    if (baseValue <= 0) return 0;
+    return (todayPnL / baseValue) * 100;
+  }, [todayPnL, totalNetWorth]);
 
   return (
     <div className="min-h-screen bg-zinc-950 w-full text-white">
@@ -104,10 +130,10 @@ export const AssetsDashboard: React.FC = () => {
                 你好，{user?.username} 👋
               </h1>
               <p className="text-xs text-zinc-500 font-medium">
-                {todayFundPnL !== 0 && (
-                  <span className={todayFundPnL >= 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                    今日基金估算{todayFundPnL >= 0 ? ' +' : ' '}
-                    {showBalances ? todayFundPnL.toFixed(2) : '***'} ·{' '}
+                {investmentAssets.length > 0 && (
+                  <span className={todayPnL >= 0 ? 'text-rose-400' : 'text-emerald-400'}>
+                    今日浮动 {todayPnL >= 0 ? '+' : ''}
+                    {showBalances ? `${todayPnL.toFixed(2)} (${todayPnLPct.toFixed(2)}%)` : '***'} ·{' '}
                   </span>
                 )}
                 个人资产管理中枢
@@ -147,7 +173,8 @@ export const AssetsDashboard: React.FC = () => {
             onToggle={toggleBalances}
             liquidTotal={liquidAssets.reduce((s, a) => s + a.balance, 0)}
             investmentTotal={investmentAssets.reduce((s, a) => s + a.balance, 0)}
-            todayPnL={todayFundPnL}
+            todayPnL={todayPnL}
+            todayPnLPct={todayPnLPct}
           />
         </div>
 

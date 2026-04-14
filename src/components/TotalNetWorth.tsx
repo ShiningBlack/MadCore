@@ -8,6 +8,7 @@ interface Props {
   liquidTotal: number;
   investmentTotal: number;
   todayPnL: number;
+  todayPnLPct?: number;
 }
 
 const fmt = (v: number, show: boolean) =>
@@ -16,7 +17,7 @@ const fmt = (v: number, show: boolean) =>
     : '******';
 
 export const TotalNetWorth: React.FC<Props> = ({
-  total, show, onToggle, liquidTotal, investmentTotal, todayPnL,
+  total, show, onToggle, liquidTotal, investmentTotal, todayPnL, todayPnLPct,
 }) => {
   const isPnLPos = todayPnL >= 0;
   const hasFund = investmentTotal > 0;
@@ -50,13 +51,18 @@ export const TotalNetWorth: React.FC<Props> = ({
         </div>
 
         {/* Today PnL (funds) */}
-        {hasFund && todayPnL !== 0 && (
+        {hasFund && (
           <div className={`flex items-center gap-1.5 mb-6 text-sm font-bold ${isPnLPos ? 'text-rose-200' : 'text-emerald-200'}`}>
             {isPnLPos ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-            <span>今日基金估算</span>
+            <span>今日浮动</span>
             <span className="font-black">
               {isPnLPos ? '+' : ''}{show ? todayPnL.toFixed(2) : '***'}
             </span>
+            {todayPnLPct !== undefined && (
+              <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] bg-white/10">
+                {isPnLPos ? '+' : ''}{todayPnLPct.toFixed(2)}%
+              </span>
+            )}
           </div>
         )}
 

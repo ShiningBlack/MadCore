@@ -1,14 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { initDb } from '../lib/db';
-import { invoke } from '@tauri-apps/api/core';
+import { api } from '../lib/api';
 
 export interface User {
   id: number;
   username: string;
   email?: string;
   avatar?: string;
-  lastLogin: string;
+  created_at: string;
 }
 
 interface UserState {
@@ -18,13 +17,14 @@ interface UserState {
 
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string, email?: string) => Promise<boolean>;
+  fetchProfile: () => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
 
 export const useUserStore = create<UserState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       error: null,
@@ -34,38 +34,22 @@ export const useUserStore = create<UserState>()(
       login: async (username, password) => {
         set({ error: null });
         try {
-          const db = await initDb();
-          
-          if (typeof invoke === 'undefined') {
-            throw new Error('未检测到 Tauri 环境 (invoke is undefined)。请确保在 Tauri 窗口中运行，而非在普通浏览器中。');
-          }
+          const body = new URLSearchParams();
+          body.append('username', username);
+          body.append('password', password);
 
-          const hashed: string = await invoke('hash_password', { password });
-          const users = await db.select<any[]>(
-            'SELECT id, username, email, avatar FROM users WHERE username = $1 AND password = $2',
-            [username, hashed]
-          );
+          const tokenData = await api<{ access_token: string; token_type: string }>('/api/auth/login', {
+            method: 'POST',
+            body,
+          });
 
-          if (users.length > 0) {
-            const u = users[0];
-            set({
-              user: {
-                id: u.id,
-                username: u.username,
-                email: u.email,
-                avatar: u.avatar,
-                lastLogin: new Date().toISOString(),
-              },
-              isAuthenticated: true,
-              error: null,
-            });
-            return true;
-          } else {
-            set({ error: '用户名或密码错误' });
-            return false;
-          }
+          localStorage.setItem('madcore_token', tokenData.access_token);
+
+          // Fetch user profile after successful login
+          await get().fetchProfile();
+          return true;
         } catch (err: any) {
-          set({ error: `系统错误: ${err.message || err}` });
+          set({ error: err.data?.detail || '用户名或密码错误' });
           return false;
         }
       },
@@ -73,49 +57,37 @@ export const useUserStore = create<UserState>()(
       register: async (username, password, email) => {
         set({ error: null });
         try {
-          const db = await initDb();
-          const exists = await db.select<any[]>(
-            'SELECT id FROM users WHERE username = $1',
-            [username]
-          );
-          if (exists.length > 0) {
-            set({ error: '该用户名已被注册' });
-            return false;
-          }
-
-          const hashed: string = await invoke('hash_password', { password });
-          const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
-
-          await db.execute(
-            'INSERT INTO users (username, password, email, avatar) VALUES ($1, $2, $3, $4)',
-            [username, hashed, email ?? null, avatar]
-          );
-
-          const created = await db.select<any[]>(
-            'SELECT id, username, email, avatar FROM users WHERE username = $1',
-            [username]
-          );
-          const u = created[0];
-
-          set({
-            user: {
-              id: u.id,
-              username: u.username,
-              email: u.email,
-              avatar: u.avatar,
-              lastLogin: new Date().toISOString(),
-            },
-            isAuthenticated: true,
-            error: null,
+          await api('/api/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({
+              username,
+              password,
+              email: email || undefined,
+            }),
           });
-          return true;
+
+          // After registration, log them in automatically
+          return await get().login(username, password);
         } catch (err: any) {
-          set({ error: `系统错误: ${err.message || err}` });
+          set({ error: err.data?.detail || '注册失败' });
           return false;
         }
       },
 
-      logout: () => set({ user: null, isAuthenticated: false }),
+      fetchProfile: async () => {
+        try {
+          const user = await api<User>('/api/auth/me');
+          set({ user, isAuthenticated: true, error: null });
+        } catch (err: any) {
+          set({ user: null, isAuthenticated: false, error: '登录已过期，请重新登录' });
+          localStorage.removeItem('madcore_token');
+        }
+      },
+
+      logout: () => {
+        localStorage.removeItem('madcore_token');
+        set({ user: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'madcore-user-storage',

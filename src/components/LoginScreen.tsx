@@ -184,7 +184,7 @@ export const LoginScreen: React.FC = () => {
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-600 mt-6">密码经 SHA-256 加密存储于本地</p>
+        <p className="text-center text-xs text-zinc-600 mt-6">数据传输经由安全加密，账户信息存储于服务器端</p>
       </div>
     </div>
   );
